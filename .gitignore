@@ -1,0 +1,6 @@
+.lake/
+.elan/
+.direnv/
+result
+result-*
+docbuild/.lake/

@@ -1,0 +1,8 @@
+import Synthesis.Domains.Electronics
+import Synthesis.Domains.Thermal
+import Synthesis.Domains.Mechanics
+import Synthesis.Domains.Photonics
+import Synthesis.Domains.Chemistry
+import Synthesis.Domains.Quantum
+import Synthesis.Domains.Components
+import Synthesis.Domains.RealElectronics

@@ -1,0 +1,13 @@
+name = "synthesis_docs"
+version = "0.1.0"
+reservoir = false
+packagesDir = "../.lake/packages"
+
+[[require]]
+name = "doc-gen4"
+git = "https://github.com/leanprover/doc-gen4.git"
+rev = "1d0643dd819f8ca71b1dd82cba6e3e3050f0a255"
+
+[[require]]
+name = "synthesis"
+path = ".."

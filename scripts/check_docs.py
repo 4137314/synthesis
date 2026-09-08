@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Require generated public API pages and the search index before publication."""
+from pathlib import Path
+import json
+
+ROOT = Path(__file__).resolve().parent.parent
+OUTPUT = ROOT / "docbuild/.lake/build/api/doc"
+
+
+def main() -> None:
+    required = ["index.html", "Synthesis.html", "Synthesis/Domains.html", "Synthesis/Bridges.html"]
+    for folder in ["Core", "Logic", "Physics", "Systems", "IR", "Semantics", "Frontend", "Domains", "Bridges"]:
+        for source in (ROOT / "Synthesis" / folder).rglob("*.lean"):
+            required.append(str(source.relative_to(ROOT).with_suffix(".html")))
+    missing = [name for name in required if not (OUTPUT / name).is_file()]
+    if missing:
+        raise SystemExit("Missing API documentation: " + ", ".join(missing))
+    # An empty static site must never be treated as a successful documentation build.
+    index = OUTPUT / "declarations/declaration-data.bmp"
+    if not index.is_file():
+        raise SystemExit("Missing declaration search data")
+    declarations = json.loads(index.read_text(encoding="utf-8")).get("declarations", {})
+    for name in ["Synthesis.Frontend.compile", "Synthesis.Domains.RealElectronics.passive",
+                 "Synthesis.Bridges.Electrothermal.heater_verified"]:
+        if name not in declarations:
+            raise SystemExit(f"Missing searchable public declaration: {name}")
+    print(f"documentation: {len(required)} public API pages and search data verified")
+
+
+if __name__ == "__main__":
+    main()
