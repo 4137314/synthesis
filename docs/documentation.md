@@ -28,6 +28,12 @@ this presentation setting does not change any library proof or its audit.
 Generation defaults to two Lean worker threads and one project-module extractor at a time.
 Set `SYNTHESIS_DOC_THREADS` explicitly only when the runner has sufficient memory.
 
+The Nix development shell disables `bindnow` hardening: the pinned UnicodeBasic
+dependency uses Lean module plugins with lazily resolved C symbols. Eager binding
+fails on clean builds with `undefined symbol: unicode_script_to_abbrev`. Other Nix
+hardening defaults remain enabled. After changing this setting, rebuild that dependency
+with `lake -d docbuild clean UnicodeBasic` before generating documentation again.
+
 ## GitHub Pages
 
 The repository uses the GitHub Actions publishing source. CI verifies the library and

@@ -20,6 +20,9 @@
         in
         {
           default = pkgs.mkShell {
+            # Lean module plugins resolve UnicodeBasic's C symbols lazily.
+            # Eager binding breaks doc-gen4's pinned dependency on clean builds.
+            hardeningDisable = [ "bindnow" ];
             packages = with pkgs; [
               elan
               git
