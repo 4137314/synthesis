@@ -36,6 +36,122 @@ theorem resistor_passive (r : Electronics.Resistor) :
     rw [hx.2]
     exact Electronics.passive r x.current
 
+structure ConductorPoint where
+  voltage : Electronics.Voltage
+  current : Electronics.Current
+  power : Electronics.Power
+
+/-- Conductance form of the ideal resistive element; the dual of `resistor`. -/
+def conductor (g : Electronics.Conductor) : Primitive ConductorPoint where
+  component := {
+    name := "conductor"
+    operation := "synthesis.electronics.conductor.v1"
+    ports := [⟨"voltage", .input, .quantity .electronics .voltage⟩,
+      ⟨"current", .output, .quantity .electronics .currentDim⟩,
+      ⟨"power", .output, .quantity .electronics .power⟩]
+    parameters := [⟨"conductance", .conductance, g.quantity.value⟩]
+  }
+  meaning x := x.current = Electronics.current g x.voltage ∧
+    x.power = Electronics.conductorPower g x.voltage
+  valid := by simp [IR.Technology.valid, IR.uniqueNames] <;> decide
+
+theorem conductor_passive (g : Electronics.Conductor) :
+    Verified (conductor g).model ⟨fun _ => True, fun x => 0 ≤ x.power.value⟩ := by
+  apply Primitive.verify
+  · exact ⟨⟨⟨0⟩, Electronics.current g ⟨0⟩, Electronics.conductorPower g ⟨0⟩⟩, ⟨rfl, rfl⟩, trivial⟩
+  · intro x hx _
+    change 0 ≤ x.power.value
+    rw [hx.2]
+    exact Electronics.conductor_passive g x.voltage
+
+structure CapacitorPoint where
+  voltage : Electronics.Voltage
+  charge : Electronics.Charge
+  energy : Electronics.Energy
+
+/-- Ideal linear capacitor at a fixed operating point: stored charge and energy as
+functions of the terminal voltage. The time-domain law is not part of this interface. -/
+def capacitor (c : Electronics.Capacitor) : Primitive CapacitorPoint where
+  component := {
+    name := "capacitor"
+    operation := "synthesis.electronics.capacitor.v1"
+    ports := [⟨"voltage", .input, .quantity .electronics .voltage⟩,
+      ⟨"charge", .output, .quantity .electronics .charge⟩,
+      ⟨"energy", .output, .quantity .electronics .energy⟩]
+    parameters := [⟨"capacitance", .capacitance, c.quantity.value⟩]
+  }
+  meaning x := x.charge = Electronics.charge c x.voltage ∧
+    x.energy = Electronics.capacitiveEnergy c x.voltage
+  valid := by simp [IR.Technology.valid, IR.uniqueNames] <;> decide
+
+theorem capacitor_energy_nonnegative (c : Electronics.Capacitor) :
+    Verified (capacitor c).model ⟨fun _ => True, fun x => 0 ≤ x.energy.value⟩ := by
+  apply Primitive.verify
+  · exact ⟨⟨⟨0⟩, Electronics.charge c ⟨0⟩, Electronics.capacitiveEnergy c ⟨0⟩⟩, ⟨rfl, rfl⟩, trivial⟩
+  · intro x hx _
+    change 0 ≤ x.energy.value
+    rw [hx.2]
+    exact Electronics.capacitive_energy_nonnegative c x.voltage
+
+structure InductorPoint where
+  current : Electronics.Current
+  flux : Electronics.Flux
+  energy : Electronics.Energy
+
+/-- Ideal linear inductor at a fixed operating point: flux linkage and stored energy as
+functions of the branch current. -/
+def inductor (l : Electronics.Inductor) : Primitive InductorPoint where
+  component := {
+    name := "inductor"
+    operation := "synthesis.electronics.inductor.v1"
+    ports := [⟨"current", .input, .quantity .electronics .currentDim⟩,
+      ⟨"flux", .output, .quantity .electronics .magneticFlux⟩,
+      ⟨"energy", .output, .quantity .electronics .energy⟩]
+    parameters := [⟨"inductance", .inductance, l.quantity.value⟩]
+  }
+  meaning x := x.flux = Electronics.flux l x.current ∧
+    x.energy = Electronics.inductiveEnergy l x.current
+  valid := by simp [IR.Technology.valid, IR.uniqueNames] <;> decide
+
+theorem inductor_energy_nonnegative (l : Electronics.Inductor) :
+    Verified (inductor l).model ⟨fun _ => True, fun x => 0 ≤ x.energy.value⟩ := by
+  apply Primitive.verify
+  · exact ⟨⟨⟨0⟩, Electronics.flux l ⟨0⟩, Electronics.inductiveEnergy l ⟨0⟩⟩, ⟨rfl, rfl⟩, trivial⟩
+  · intro x hx _
+    change 0 ≤ x.energy.value
+    rw [hx.2]
+    exact Electronics.inductive_energy_nonnegative l x.current
+
+structure SourcePoint where
+  current : Electronics.Current
+  delivered : Electronics.Power
+
+/-- Ideal independent voltage source. It is an active element: its certificate below is
+conditional on a stated current direction, and no passivity theorem is available. -/
+def voltageSource (s : Electronics.VoltageSource) : Primitive SourcePoint where
+  component := {
+    name := "voltage-source"
+    operation := "synthesis.electronics.voltage-source.v1"
+    ports := [⟨"current", .input, .quantity .electronics .currentDim⟩,
+      ⟨"delivered", .output, .quantity .electronics .power⟩]
+    parameters := [⟨"electromotive-force", .voltage, s.emf.value⟩]
+  }
+  meaning x := x.delivered = s.delivered x.current
+  valid := by simp [IR.Technology.valid, IR.uniqueNames] <;> decide
+
+/-- Inside the stated operating envelope, a source with nonnegative electromotive force
+delivers nonnegative power. Outside it the source absorbs, which is why the assumption
+is part of the contract rather than a global claim. -/
+theorem source_delivers (s : Electronics.VoltageSource) (oriented : 0 ≤ s.emf.value) :
+    Verified (voltageSource s).model
+      ⟨fun x => 0 ≤ x.current.value, fun x => 0 ≤ x.delivered.value⟩ := by
+  apply Primitive.verify
+  · exact ⟨⟨⟨0⟩, s.delivered ⟨0⟩⟩, rfl, Rat.le_refl⟩
+  · intro x hx ha
+    change 0 ≤ x.delivered.value
+    rw [hx]
+    exact Rat.mul_nonneg oriented ha
+
 structure ThermalPoint where
   left : Thermal.Temperature
   right : Thermal.Temperature

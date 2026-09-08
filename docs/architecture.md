@@ -75,7 +75,7 @@ A feasibility witness does not prove realizability for every input.
 Consumers import `Synthesis` and choose the evidence level they require: structural
 `IR.Validated`, interpreted `Semantics.Model`, or `Semantics.Verified` for a named
 requirement in their own requirement catalog. Consumers must reject operations they
-do not implement. Graph schema version is 2; package/API version is 0.3.0.
+do not implement. Graph schema version is 2; package/API version is 0.4.0.
 
 No parser, serializer, universal solver, domain simulator or backend is provided.
 Rational literal parameters are implemented. Priorities include scoped symbolic equations, structured
@@ -87,6 +87,12 @@ and what remains assumed. See [domain development](domain-development.md).
 
 `Synthesis.Domains` exports electronics, thermal, mechanics/materials, photonics,
 chemistry and exact elementary quantum models, plus parameterized primitive adapters.
+Electronics is itself layered: `Synthesis.Domains.Electronics` holds the exact rational
+elements that carry AST parameters, and `Synthesis.Domains.Electronics.*` holds the
+Mathlib-based analytic theory (terminal relations, interconnection algebra, Kirchhoff
+and Tellegen, nodal analysis, source equivalence, continuous-time storage, transients,
+phasors, nonlinear devices, feedback and logic levels). See
+[ADR 0005](adr/0005-electronics-domain-package.md).
 `Synthesis.Bridges` exports explicit domain couplings; the initial bridge is an ideal
 Joule heater. The kernel does not import these umbrellas. See [models](models.md) for
 the exact definitions, theorem inventory, sources and limitations.
@@ -103,7 +109,9 @@ New modules omitted from that closure fail CI rather than escaping the audit.
 
 ## Mathematics and documentation dependencies
 
-Mathlib is pinned to the Lean 4.32.2 release and used by `Domains.RealElectronics`.
+Mathlib is pinned to the Lean 4.32.2 release and used by `Domains.RealElectronics` and
+the analytic electronics package. `scripts/cache.sh` fetches exactly their import
+closure; adding a Mathlib import to a module requires extending that list.
 The computable rational models retain their existing scalar semantics. Real-valued
 coefficients require a future explicit representation/approximation boundary to enter
 the rational AST. No implicit rounding is introduced.

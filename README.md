@@ -34,6 +34,13 @@ import Synthesis.Bridges
 
 open Synthesis
 #check Domains.Components.resistor_passive
+#check Domains.Components.capacitor_energy_nonnegative
+#check Domains.Electronics.Network.tellegen
+#check Domains.Electronics.Nodal.branch_voltage_unique
+#check Domains.Electronics.Source.maximum_power_transfer
+#check Domains.Electronics.Transient.FirstOrder.natural_unique
+#check Domains.Electronics.Magnetics.Coupled.energy_nonneg_iff
+#check Domains.Electronics.TwoPort.Impedance.passivity_iff
 #check Domains.Components.optical_conservation
 #check Domains.Chemistry.reachable_elements_conserved
 #check Domains.Quantum.Gate.preserves_normalization
@@ -42,7 +49,10 @@ open Synthesis
 
 | Domain | Initial model | Proved properties |
 | --- | --- | --- |
-| Electronics | Ideal passive resistor and series composition | Nonnegative power, voltage/power composition, operating-point existence |
+| Electronics (exact) | Resistor, conductor, capacitor, inductor, ideal sources | Passivity, series/parallel algebra, divider identities, stored energy, unique loop operating point |
+| Electronics (networks) | Finite topologies, nodal analysis, source equivalence | Kirchhoff laws, Tellegen's theorem, superposition, solution uniqueness, Thévenin/Norton, maximum power transfer |
+| Electronics (analytic) | Storage in continuous time, transients, phasors, devices, feedback, logic levels | Power as the derivative of stored energy, uniqueness of the first-order solution, resonance minimizes impedance, diode passivity, pinch-off continuity, ideal gains as limits, noise immunity |
+| Electronics (multiport) | Coupled inductors, ideal transformer, two-ports | Coupling bound equivalent to passivity, lossless transformer and impedance reflection, two-port passivity characterization, T realization, cascade reciprocity |
 | Thermal | Steady lumped conductance | Equilibrium, heat-flow direction, terminal conservation, dissipation inequality |
 | Mechanics/materials | Uniaxial linear elasticity | Nonnegative energy density, strict stress monotonicity, uniqueness, work identity |
 | Photonics | Incoherent passive power splitter | Nonnegative outputs/loss, power conservation, no gain |
@@ -68,10 +78,13 @@ unproved assumptions. Physical laws are explicit model definitions or hypotheses
 The guarantees apply within those models and hypotheses; empirical applicability,
 uncertainty, numerical approximation and industrial certification need additional work.
 
-The API is experimental: **0.3.0**, **AST schema 2**. Component parameters are normalized
+The API is experimental: **0.4.0**, **AST schema 2**. Component parameters are normalized
 rational literals; symbolic parameter binding, textual parsing, serialization,
-continuous-time solvers and target backends are not implemented. The additional `Domains.RealElectronics` model uses Mathlib real numbers and ring
-reasoning. Arbitrary real coefficients are not silently converted to rational AST literals.
+textual parsing, serialization, general continuous-time solvers and target backends are
+not implemented. The `Domains.RealElectronics` model and the `Domains.Electronics.*`
+package use Mathlib real, complex and ordered-field theory; the exact rational
+electronics core stays independent of it. Arbitrary real coefficients are not silently
+converted to rational AST literals.
 
 ## Development
 

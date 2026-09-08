@@ -3,6 +3,7 @@ import Synthesis
 import Tests.Main
 import Synthesis.Domains
 import Tests.RealElectronics
+import Tests.Electronics
 
 open Lean
 /- Audit every imported project declaration against Lean's foundational assumptions.
