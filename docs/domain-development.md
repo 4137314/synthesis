@@ -164,3 +164,25 @@ Document new physical models in docs/models.md with assumptions and theorem name
 Use explicit Lean variables and English text. Kernel code must not import your package.
 Run the repository proof, module-closure and assumption audits; no proof holes or
 project-specific unchecked assumptions are permitted.
+
+
+## Typed helpers and package composition (API 0.6)
+
+AttributeCodec provides pack/unpack with a kernel-checked round trip. TypeFamily uses
+that exact payload codec for parameterized type constructors. Encoding.literal builds
+an exact typed literal; Extension still checks its admissibility. OperationSchema is
+a fixed-signature helper, while value-dependent rules remain application callbacks.
+InterfaceSchema builds a port from explicit type, role and interface contracts.
+None of these helpers infer physical connector laws.
+
+Wrap the extension in ExtensionPackage with the contracts it owns. Compose packages
+using Extension.combineMany. A contract may appear in only one manifest, including
+shared dependencies: compose that shared dependency once. Ownership is distinct from
+acceptance, so invalid payloads cannot fall through to a different handler. Conflict
+diagnostics identify the contract and claiming packages. Namespace ownership remains
+a package convention, not global registration.
+
+Tests.ExternalPackage implements private hydraulic types, ports, a constitutive
+operation, symbolic hierarchical bindings, multiway junctions, queries and a gated
+consumer using only `import Synthesis`. Tests.Targets covers independent digital,
+continuous, geometry and systems-engineering representation contracts.

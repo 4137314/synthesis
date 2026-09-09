@@ -3,3 +3,6 @@ import Synthesis.Frontend.Elaborate
 import Synthesis.Frontend.Builder
 import Synthesis.Frontend.Inspect
 import Synthesis.Frontend.System
+import Synthesis.Frontend.Scope
+import Synthesis.Frontend.Construction
+import Synthesis.Frontend.Source

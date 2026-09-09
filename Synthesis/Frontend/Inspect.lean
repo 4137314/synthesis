@@ -1,17 +1,19 @@
 import Lean
 import Synthesis.Frontend.Builder
+import Synthesis.IR.Query
 
 namespace Synthesis.Frontend
 set_option autoImplicit false
 
 def hierarchy (m : IR.Module) : List (QualifiedId × List (Symbol × QualifiedId)) :=
-  m.definitions.map fun d => (d.id, d.instances.map fun i => (i.name, i.definition))
+  m.foldDefinitions [] fun acc d => acc ++ [(d.id,
+    d.foldInstances [] fun xs i => xs ++ [(i.name, i.definition)])]
 
 def interfaces (m : IR.Module) : List (QualifiedId × List IR.Port) :=
-  m.definitions.map fun d => (d.id, d.ports)
+  m.foldDefinitions [] fun acc d => acc ++ [(d.id, d.foldPorts [] fun ps p => ps ++ [p])]
 
 def operations (m : IR.Module) : List (QualifiedId × List IR.Operation) :=
-  m.definitions.map fun d => (d.id, d.operations)
+  m.foldDefinitions [] fun acc d => acc ++ [(d.id, d.foldOperations [] fun ops op => ops ++ [op])]
 
 syntax "#engineering.check " term : command
 macro_rules

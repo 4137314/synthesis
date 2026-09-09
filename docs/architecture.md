@@ -24,8 +24,8 @@ source-model theorem.
 The erased IR contains no Lean functions, propositions or hidden existential payloads.
 The rich layer may use real numbers, dependent types, trajectories, sets, functions and
 proofs. `Design.Encoding` requires exact encode/decode round trips; it cannot justify
-rounding arbitrary real values into rational literals. Serialization itself is not
-implemented. Decidable equality for recursive data is structurally recursive and
+rounding arbitrary real values into rational literals. A versioned reference JSON encoding is implemented; decoding returns raw IR and requires
+separate validation. See [serialization](serialization.md). Decidable equality for recursive data is structurally recursive and
 kernel checked.
 
 ## Dependency direction
@@ -78,7 +78,7 @@ do not escape. Duplicate/shadowed binders are rejected.
 
 `Extension` supplies literal recognition, type recognition, application signatures,
 port/connector rules, operation-shape rules and semantic attribute recognition. It is
-ordinary explicit Lean configuration; private packages can compose dispatch functions.
+ordinary explicit Lean configuration; private packages compose ExtensionPackage manifests using conflict-checked combineMany.
 A signature receives both original arguments and inferred types, so value-dependent
 widths/slices need no encoding trick. It can enforce dimension arithmetic, kind distinctions, finite widths or
 arbitrary private typing rules. Its laws remain the extension author's responsibility.
@@ -233,7 +233,7 @@ or a complete natural-language-like engineering elaborator.
 
 ## Versioning, tests and remaining implementation work
 
-API 0.5.0 is experimental. IR schema 3 is a deliberate breaking replacement; Module
+API 0.6.0 follows the supported/experimental boundary in api-stability.md. IR schema 3 is a deliberate breaking replacement; Module
 carries its schema and validation rejects other versions. Contract versions are separate
 from package and core schema versions. No migration framework or compatibility graph
 stack is retained. See [ADR 0007](adr/0007-open-engineering-ir.md) for the audit/decision.
@@ -248,8 +248,36 @@ Chemistry have independent imports. Tests.Targets exercises concrete clock/reset
 differential, layout/placement, requirement-lineage and FEM-boundary payloads.
 
 Future work includes richer domain-specific surface syntax, complete source-position
-capture, serializers, scalable indexed lookup, automatic parameter evaluation,
+capture, additional codecs, scalable indexed lookup, automatic parameter evaluation,
 hierarchy flattening and domain-specific refinement proofs. These fit the public
 extension/stage contracts; no corresponding implementation or preservation theorem is
 claimed today. Solvers, target emitters, physical implementation and manufacturing
 realizability belong outside this task.
+
+
+## Supported API boundary
+
+API 0.6.0 retains IR schema 3. The serialization format is independently versioned at 1,
+and the generic interop protocol is 1. See [API stability](api-stability.md) and
+[public API map](public-api.md) for supported versus experimental contracts.
+
+EntityRef addresses module-relative definitions, hierarchical occurrences and named
+local declarations; arguments and repeated attributes are explicitly positional.
+Module.walk provides definition-table preorder; walkHierarchy expands occurrences
+with a depth budget. Index is a derived snapshot with a lookup-agreement theorem,
+not serialized truth. Consumers should use these queries instead of storage fields.
+
+ExtensionPackage declares exclusive contract ownership. Composition rejects conflicts
+before running handlers. An unsupported payload cannot be accepted by falling through
+to another owner. TypeFamily, AttributeCodec, OperationSchema and InterfaceSchema help
+domain authors build typed APIs without central registration.
+
+Diagnostic subjects and related entities use EntityRef. SourceDocument maps portable
+byte spans to zero-based line/byte-column positions. sourced_operation attaches syntax
+origin without storing Lean syntax in IR. Full frontend elaboration remains extensible;
+these helpers do not promise inference of arbitrary private engineering constraints.
+
+CertifiedTranslation requires a proof of a specified source/target relation.
+EvidenceReport remains a report. CertifiedRealization separately requires technology
+admissibility, feasibility and specification satisfaction. Migration composes explicit
+schema transitions; disclosures are not preservation theorems.

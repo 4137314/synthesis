@@ -7,3 +7,9 @@ import Synthesis.IR.Typing
 import Synthesis.IR.Standard
 import Synthesis.IR.Connector
 import Synthesis.IR.Information
+import Synthesis.IR.Entity
+import Synthesis.IR.Query
+import Synthesis.IR.Composition
+import Synthesis.IR.Serialization
+import Synthesis.IR.Index
+import Synthesis.IR.Render

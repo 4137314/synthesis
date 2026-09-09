@@ -9,3 +9,4 @@ import Synthesis.Semantics
 import Synthesis.Design
 import Synthesis.Frontend
 import Synthesis.Interop
+import Synthesis.Core.Version

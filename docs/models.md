@@ -568,3 +568,17 @@ semantics. No joint feasibility or physical applicability is inferred. Child mod
 metadata and root bindings survive wrapper definitions/instances, and identical child
 definitions are shared. Examples.Assurance.pairedInventory checks two typed inventory
 placements and an explicit initial-agreement law; duplicate placements are rejected.
+
+## Realization and evidence infrastructure
+
+`Design.Specification` states an assume/guarantee contract. `TechnologyContext` is an
+explicit admissibility predicate over candidates, with extension-owned aspect IDs.
+`CertifiedRealization` requires candidate admissibility, a feasible observation within
+the specification envelope and satisfaction for all candidate behaviors. It neither
+finds candidates nor proves a technology empirically applicable. Symbolic candidates
+and arbitrary parameter admissibility sets remain possible.
+
+`Interop.Equivalent.trans` composes projected equivalence using actual refinement and
+lifting proofs. `TranslationValidator` produces proof evidence for a caller-specified
+relation, independently of the generator. `EvidenceReport` carries no proof and cannot
+be used to discharge a proposition. No new physical laws or empirical claims are added.

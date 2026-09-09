@@ -16,9 +16,16 @@ structure Checker (requirement : Requirement A) where
 
 /-- Traceability is many-to-many; loss and generated obligations are explicit. -/
 structure Trace where
-  source : List QualifiedId
-  target : List QualifiedId
+  source : List IR.EntityRef
+  target : List IR.EntityRef
   deriving Repr
+
+/-- Compose many-to-many trace links through an explicitly shared intermediate
+revision. Unmatched links remain in the stage lineage, not in this end-to-end view. -/
+def Trace.compose (first second : List Trace) : List Trace :=
+  first.flatMap fun a => second.filterMap fun b =>
+    if a.target.any (fun middle => b.source.contains middle) then
+      some ⟨a.source, b.target⟩ else none
 
 structure Disclosure where
   consumed : List ContractId := []
@@ -26,6 +33,7 @@ structure Disclosure where
   erased : List ContractId := []
   assumed : List ContractId := []
   derived : List ContractId := []
+  diagnostics : List IR.Diagnostic := []
   obligations : List IR.Diagnostic := []
   trace : List Trace := []
   deriving Repr
@@ -52,6 +60,7 @@ def Stage.andThen (first : Stage A B) (second : Stage B C) (id : ContractId) : S
       erased := a.disclosure.erased ++ b.disclosure.erased
       assumed := a.disclosure.assumed ++ b.disclosure.assumed
       derived := a.disclosure.derived ++ b.disclosure.derived
+      diagnostics := a.disclosure.diagnostics ++ b.disclosure.diagnostics
       obligations := a.disclosure.obligations ++ b.disclosure.obligations
       trace := a.disclosure.trace ++ b.disclosure.trace }⟩
 

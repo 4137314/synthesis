@@ -79,4 +79,24 @@ example (result : Validated) (h : compile (design assembly [layout]) = .ok resul
 example (result : Validated) (h : compile (design systemSpec) = .ok result) :
     result.ast.definitions = [systemSpec] := congrArg Module.definitions (compile_preserves _ result h)
 
+/-- Systems-engineering relationships remain private contracts over shared structure. -/
+def systemAssembly : Definition := engineering ⟨["private.systems", "assembly"]⟩ where
+  instanceOf "requirements" systemSpec.id
+  instanceOf "control" controller.id
+  operation (.node "allocation" (id_ "systems" "allocation") [] [] [
+    ⟨id_ "systems" "from", .symbol "requirements"⟩,
+    ⟨id_ "systems" "to", .symbol "control"⟩] [] {})
+
+def systemModel : IR.Module := design systemAssembly [systemSpec, controller]
+example : systemModel.Structural := by decide +kernel
+example : (systemModel.referencesToDefinition controller.id).length = 1 := by decide +kernel
+example : (systemModel.operationsWith (id_ "systems" "requirement")).length = 1 := by decide +kernel
+
+/-- Layout and logical entities can be linked without encoding a target ontology in IR. -/
+def layoutTrace : Synthesis.Interop.Trace := ⟨
+  [{ definition := some controller.id, steps := [.operation "register"] }],
+  [{ definition := some layout.id, steps := [.operation "outline"] }]⟩
+example : layoutTrace.source.all (fun r => (systemModel.findEntity r).isSome) = true := by decide +kernel
+example : layoutTrace.target.all (fun r => ((design assembly [layout]).findEntity r).isSome) = true := by decide +kernel
+
 end Tests.Targets

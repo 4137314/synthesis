@@ -23,7 +23,9 @@ def main() -> None:
     declarations = json.loads(index.read_text(encoding="utf-8")).get("declarations", {})
     for name in ["Synthesis.IR.Module", "Synthesis.IR.Extension", "Synthesis.IR.Typed",
                  "Synthesis.Design.Model", "Synthesis.Design.System", "Synthesis.Frontend.compileSystem",
-                 "Synthesis.Interop.Exporter",
+                 "Synthesis.Interop.Exporter", "Synthesis.IR.EntityRef", "Synthesis.IR.Module.walk",
+                 "Synthesis.IR.Module.encode", "Synthesis.IR.Extension.combineMany",
+                 "Synthesis.Interop.TranslationValidator", "Synthesis.Design.CertifiedRealization",
                  "Synthesis.Frontend.compile", "Synthesis.Domains.RealElectronics.passive",
                  "Synthesis.Bridges.Electrothermal.heater_verified"]:
         if name not in declarations:

@@ -89,6 +89,10 @@ def main() -> int:
                     errors.append(f"{module}: missing project module {dependency}")
                 else:
                     graph[module].append(dependency)
+            if module == "Tests.ExternalPackage" and dependency != "Synthesis":
+                errors.append(f"{module}: external conformance fixture must use only the public umbrella")
+            if module.startswith("Tests.") and dependency.startswith("Synthesis.Internal."):
+                errors.append(f"{module}: public conformance tests must not import internals")
             if module.startswith("Synthesis") and dependency.startswith("Tests."):
                 errors.append(f"{module}: production module imports tests")
             layers = {

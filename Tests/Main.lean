@@ -1,3 +1,5 @@
+import Tests.ExternalPackage
+import Tests.PublicAPI
 import Synthesis
 import Synthesis.Examples.Multiphysics
 import Tests.Formal
@@ -8,6 +10,7 @@ import Tests.Targets
 open Synthesis
 
 def main : IO Unit := do
+  Tests.PublicAPI.check
   match Frontend.compile Examples.electroOptic with
   | .ok result =>
     unless result.ast == Examples.electroOptic do
