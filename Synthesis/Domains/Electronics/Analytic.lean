@@ -26,10 +26,10 @@ once at the weakest hypotheses that support it: over an arbitrary ordered field 
 only algebra is involved, over the reals where calculus is needed, and over the complex
 numbers for the phasor description.
 
-Nothing in this layer may enter an AST component parameter: schema 2 stores rational
-literals, and real or complex coefficients need an explicit representation or
-approximation contract that is not implemented. The exact rational elements that do carry
-AST parameters are in `Synthesis.Domains.Electronics`.
+Real or complex coefficients need an explicit extension encoding in IR schema 3.
+They must never be silently converted into rational literals. The exact rational
+models use literal defaults or instance bindings without approximation; the analytic
+models retain their chosen scalars and do not acquire an automatic IR interpretation.
 
 ## Structural layer
 

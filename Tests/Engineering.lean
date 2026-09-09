@@ -14,7 +14,7 @@ example : (Electronics.voltage resistor current).value = -20 := by
   simp [Electronics.voltage, resistor, current] <;> grind
 example : (Electronics.power resistor current).value = 40 := by
   simp [Electronics.power, Electronics.voltage, resistor, current] <;> grind
-example : (Components.resistor resistor).component.parameters = [⟨"resistance", .resistance, 10⟩] := rfl
+example : (Components.resistor resistor).definition.parameters = [IR.Standard.rationalParameter "resistance" .resistance 10] := rfl
 
 example : True := by
   fail_if_success
@@ -71,30 +71,15 @@ example : qubit.Normalized := by
 
 example : (Quantum.x.andThen Quantum.phase).run qubit = Quantum.phase.run (Quantum.x.run qubit) := rfl
 
--- The generic component recognizer cannot accept altered coefficients or interfaces.
-example : (Components.resistor resistor).model.interpretation.component
-    { (Components.resistor resistor).component with parameters := [⟨"resistance", .resistance, 11⟩] } = none := by
-  simp [Primitive.model, Components.resistor, resistor, IR.Component.mk.injEq, Parameter.mk.injEq] <;> decide
-example : (Components.resistor resistor).model.interpretation.component
-    { (Components.resistor resistor).component with ports := [] } = none := by
-  simp [Primitive.model, Components.resistor, IR.Component.mk.injEq]
+-- The complete parameterized IR is preserved by structural compilation.
+example : (Frontend.compile (Components.resistor resistor).ir).isOk = true := by decide
 
--- AST schema 2 rejects duplicate parameter names and preserves coefficients on compilation.
-def duplicateParameter : Frontend.Design := {
-  name := "bad-parameters"
-  components := [{ (Components.resistor resistor).component with parameters :=
-    [⟨"resistance", .resistance, 10⟩, ⟨"resistance", .resistance, 20⟩] }]
-}
-example : (Frontend.compile duplicateParameter).isOk = false := by decide
+-- Changed coefficients cannot reuse an interpretation for the original module.
+example : (Components.resistor resistor).model.interpretation.meaning
+    { (Components.resistor resistor).ir with bindings := [⟨"resistance",
+      .literal IR.Standard.rational (.rational 11)⟩] } = none := by
+  simp [Primitive.model, Primitive.ir, IR.Module.mk.injEq]
 
-/-- The typed frontend carries the exact parameterized model into the consumer boundary. -/
-def compiledResistor : Except Frontend.CompileError (Model Components.ElectricalPoint) :=
-  Frontend.compileModel
-    ⟨(Components.resistor resistor).component.name, [(Components.resistor resistor).component], []⟩
-    (Components.resistor resistor).model.interpretation
-    (Components.resistor resistor).model.supported
-
-example : compiledResistor.isOk = true := by decide
 example : Verified (Components.resistor resistor).model ⟨fun _ => True, fun x => 0 ≤ x.power.value⟩ :=
   Components.resistor_passive resistor
 example : (Bridges.Electrothermal.heat resistor current).value = 40 := by
@@ -102,15 +87,5 @@ example : (Bridges.Electrothermal.heat resistor current).value = 40 := by
 
 example : ¬(Quantum.Qubit.Normalized ⟨⟨2, 0⟩, ⟨0, 0⟩⟩) := by
   simp [Quantum.Qubit.Normalized, Quantum.Qubit.normSquared, Quantum.Amplitude.normSquared] <;> grind
-
-example : (Components.resistor resistor).model.interpretation.component
-    { (Components.resistor resistor).component with parameters := [⟨"resistance", .timeDim, 10⟩] } = none := by
-  simp [Primitive.model, Components.resistor, resistor, IR.Component.mk.injEq,
-    Parameter.mk.injEq, Dimension.resistance, Dimension.timeDim] <;> decide
-
-example : (Frontend.compile {
-    name := "empty-parameter"
-    components := [{ (Components.resistor resistor).component with
-      parameters := [⟨"", .resistance, 10⟩] }] }).isOk = false := by decide
 
 end Tests.Engineering

@@ -2,9 +2,15 @@
 
 [API documentation](https://4137314.github.io/synthesis/) · [Source](https://github.com/4137314/synthesis)
 
-A Lean 4 library for engineering descriptions, formal reasoning, and compilation to
-a custom multiphysics AST. A small formal kernel supports independently extensible
-domain theories. Target backends such as VHDL, GDSII and Python belong downstream.
+Synthesis is a Lean 4 formal engineering frontend and extensible semantic IR foundation.
+Engineering domains define typed models, behavior, requirements and refinement; independent
+downstream packages can lower validated representations into domain-specific and
+tool-specific formats.
+
+Synthesis provides the architecture that makes such backends possible; it does not
+provide them itself. A target's required information must be supplied or explicitly
+derived. An abstract model without geometry cannot be exported as physical layout by
+inventing coordinates, and an acausal specification is not automatically implementable RTL.
 
 ## Getting started
 
@@ -76,9 +82,10 @@ references. These are exact idealized models, not complete industrial device mod
 - SI dimensions, scalar-parametric quantities, equations and balance laws.
 - Assume/guarantee contracts, refinement and composition.
 - Transition systems, inductive invariants and forward simulation.
-- A typed AST with rational SI parameters and checked connections.
+- Open, versioned IR contracts with reusable definitions, hierarchy and multiway junctions.
+- Symbolic typed parameters, nested behavior bodies and identified semantic attributes.
 - Explicit component/coupling interpretations and non-vacuous requirement certificates.
-- Compiler interfaces carrying structural and semantic preservation evidence.
+- Representation-changing stages, refinement proofs and evidence-gated external exporter APIs.
 
 Proofs are kernel-checked. The audit permits only Lean's standard foundational
 assumptions (`propext`, `Classical.choice`, `Quot.sound`), with no project-specific
@@ -86,13 +93,24 @@ unproved assumptions. Physical laws are explicit model definitions or hypotheses
 The guarantees apply within those models and hypotheses; empirical applicability,
 uncertainty, numerical approximation and industrial certification need additional work.
 
-The API is experimental: **0.4.0**, **AST schema 2**. Component parameters are normalized
-rational literals; symbolic parameter binding, textual parsing, serialization, general
-continuous-time solvers and target backends are not implemented. The
-`Domains.RealElectronics` model and the `Domains.Electronics.Analytic` package use Mathlib
-real, complex and ordered-field theory; the exact rational electronics core stays
-independent of it. Arbitrary real coefficients are not silently converted to rational AST
-literals.
+The API is experimental: **0.5.0**, **IR schema 3**. This is a deliberate replacement of
+the old flat graph API. The compiler-facing IR is open data; rich Lean models retain
+relations and proofs through explicit denotation links. Independent extensions define
+types, interfaces, operation semantics, geometry or lower-level dialects without central
+enum changes. Exact rational coefficients remain available without becoming the universal
+scalar model. Arbitrary real values are never silently rounded.
+
+The rich `engineering_system ... where` DSL composes typed semantic models, explicit
+relations and requirements. The lower-level `engineering ... where` builder supports reusable definitions,
+instances, parameters, ports, junctions and extension operations. Inspection and validation
+commands show the resulting structure. See the [architecture](docs/architecture.md),
+[domain author guide](docs/domain-development.md), [backend author guide](docs/backend-development.md)
+and [migration decision](docs/adr/0007-open-engineering-ir.md).
+
+No target backend, serializer, solver, automatic causalizer or verified hierarchy
+flattening pass is implemented. Domain-specific syntax, full source-position capture,
+parameter evaluation and concrete lowering stages remain extension work. Structural
+validation, extension typing, semantic coverage and requirement verification are distinct.
 
 Electronics is decomposed one module per theory, with an umbrella per directory that
 re-exports its parts and maps them, so a consumer that needs only Kirchhoff's laws does

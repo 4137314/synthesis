@@ -2,14 +2,15 @@
 
 ## Scope and architecture
 
-This is a Lean 4 library for formal engineering technology descriptions compiled
-into a custom, backend-neutral AST. The package is `synthesis`, namespace `Synthesis`.
+This is a Lean 4 library for formal engineering technology descriptions lowered
+into an open, backend-neutral engineering IR. The package is `synthesis`, namespace `Synthesis`.
 Read README.md and docs/architecture.md before changing the architecture.
 Implement no VHDL, GDSII, Python, simulator, fabrication or other target backend.
 External consumers own target support and must reject unsupported operations.
 
 Dependency direction: Core → Physics/IR; Logic and Systems stand independently;
-IR + Logic → Semantics; IR + Semantics → Frontend → Examples.
+IR + Logic → Semantics → Design; Design + IR + Semantics → Frontend → Examples.
+Interop depends on IR and Semantics and defines external pipeline contracts.
 The umbrella Synthesis.lean exports the kernel. Domain packages depend on the kernel,
 never the reverse. Tests may depend on everything; library modules never import tests.
 Read docs/domain-development.md and docs/models.md before introducing domain semantics.
@@ -45,8 +46,9 @@ Distinguish structural validation, dimensional typing and proven physical semant
 Each theorem must state its assumptions. A named operation is not a physical model.
 Document every new model in docs/models.md with its assumptions and named theorems.
 Physical law definitions and hypotheses are distinct from proved logical consequences.
-AST schema 2 stores rational parameters: never hide varying coefficients behind an
-identical component identity. Update the schema ADR when changing this contract.
+IR schema 3 stores open symbolic terms and exact literals: never hide varying
+coefficients behind an identical definition identity. Update the schema ADR when
+changing this contract. Unknown extension data requires explicit coverage or rejection.
 Preserve dimensions and domain identity; model transducers explicitly.
 Quantum ports are resources, not ordinary clonable classical wires.
 Engineering certificates require Semantics.Verified for a specific model/requirement,
@@ -54,7 +56,8 @@ including feasibility. Frontend.Certified only certifies a graph predicate.
 Unknown component and coupling interpretations must return none, never True.
 Prove operating-envelope assumptions and explicitly state unproved applicability,
 realizability, liveness and uncertainty obligations. Never claim industrial certification.
-Compiler passes must preserve semantics and feasibility; merely valid output is insufficient.
+Compiler guarantees must distinguish equivalence, refinement and explicit lossy projection.
+Refinement certificates require feasibility; merely valid output is insufficient.
 Changing AST semantics requires a schema-version decision and an ADR.
 Do not silently discard unsupported constructs or claim backend realizability.
 

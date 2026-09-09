@@ -2,80 +2,62 @@ import Synthesis
 
 namespace Synthesis.Examples.Assurance
 open Logic Physics Semantics Systems
+set_option autoImplicit false
 
-/-- Abstract conserved inventory. Exact integer semantics are a deliberate modeling
-choice, not a continuous thermodynamic model. -/
 def inventoryDimension : Dimension := { mass := 1 }
-
 structure Inventory where
   before : Quantity Int inventoryDimension
   after : Quantity Int inventoryDimension
 
-def storage : IR.Component := ⟨"inventory", "synthesis.examples.closed-inventory.v1", [], []⟩
-
-def design : Frontend.Design := {
-  name := "closed-inventory"
-  components := [storage]
-}
-
 def balance (x : Inventory) : Balance Int inventoryDimension :=
   ⟨x.before, x.after, ⟨0⟩, ⟨0⟩, ⟨0⟩⟩
 
-/-- The interpreter recognizes the complete interface, not only an operation label. -/
-def interpretation : Interpretation Inventory where
-  component c := if c = storage then some (fun x => (balance x).Holds) else none
-  connection _ := none
+def storage : Primitive Inventory where
+  definition := {
+    id := ⟨["synthesis.examples", "inventory"]⟩
+    operations := [IR.Standard.relation "conservation" (.named "synthesis.examples" "closed-inventory")]
+  }
+  meaning x := (balance x).Holds
+  valid := by constructor <;> decide
 
-def model : Model Inventory where
-  graph := ⟨design.lower, by decide⟩
-  interpretation := interpretation
-  supported := by
-    constructor
-    · intro c hc
-      simp [design, Frontend.Design.lower] at hc
-      subst c
-      exact ⟨fun x => (balance x).Holds, by simp [interpretation]⟩
-    · simp [design, Frontend.Design.lower]
+def model := storage.model
 
-def conserved : Contract Inventory :=
-  ⟨fun _ => True, fun x => x.after = x.before⟩
+def conserved : Contract Inventory := ⟨fun _ => True, fun x => x.after = x.before⟩
 
 theorem inventory_verified : Verified model conserved := by
-  constructor
-  · refine ⟨⟨⟨4⟩, ⟨4⟩⟩, ?_, trivial⟩
-    simp [Model.behavior, Interpretation.Meaning, model, interpretation,
-      design, Frontend.Design.lower, balance, Balance.Holds]
+  apply Primitive.verify
+  · exact ⟨⟨⟨4⟩, ⟨4⟩⟩, rfl, trivial⟩
   · intro x hx _
-    obtain ⟨meaning, found, law⟩ := hx.1 storage (by simp [model, design, Frontend.Design.lower])
-    simp [model, interpretation] at found
-    subst meaning
-    exact Balance.closed_conserves law rfl rfl rfl
+    exact Balance.closed_conserves hx rfl rfl rfl
 
-/-- An unrecognized operation cannot be assigned an unconstrained meaning. -/
-example : ¬interpretation.Meaning
-    ⟨"unknown", [⟨"unknown", "unregistered.operation", [], []⟩], []⟩ x := by
-  apply unsupported_component (component := ⟨"unknown", "unregistered.operation", [], []⟩)
-  · simp
-  · decide
+/-- Rich source, inspectable lowering, retained requirement and explicit denotation. -/
+def design : Design.Model Unit Inventory where
+  source := ()
+  lower _ := storage.ir
+  behavior _ := storage.meaning
+  interpretation := model.interpretation
+  represented := storage.behavior_iff
+  supported := model.supported
+  requirements := [⟨.named "synthesis.examples" "inventory-conserved", conserved,
+    IR.Standard.relation "conservation" (.named "synthesis.examples" "closed-inventory"), {}⟩]
+  requirementsRetained := by
+    intro r hr
+    simp only [List.mem_singleton] at hr
+    subst r
+    exact ⟨storage.definition, by simp [Primitive.ir], by simp [storage]⟩
 
-/-- Contradictory domain laws must not yield an assurance certificate. -/
-def impossible : Model Unit where
-  graph := model.graph
-  interpretation := ⟨fun _ => some (fun _ => False), fun _ => none⟩
-  supported := by
-    constructor
-    · intro _ _
-      exact ⟨_, rfl⟩
-    · simp [model, design, Frontend.Design.lower]
+/-- Semantic coverage does not imply feasibility. -/
+def impossible : Primitive Unit where
+  definition := storage.definition
+  meaning _ := False
+  valid := storage.valid
 
-example : ¬Verified impossible ⟨fun _ => True, fun _ => True⟩ := by
+example : ¬Verified impossible.model ⟨fun _ => True, fun _ => True⟩ := by
   intro proof
   obtain ⟨x, hx, _⟩ := proof.feasible
-  obtain ⟨meaning, found, law⟩ := hx.1 storage (by simp [impossible, model, design, Frontend.Design.lower])
-  cases found
-  exact law
+  exact (impossible.behavior_iff x).mp hx
 
-/-- A bounded discrete inventory controller; no claim about a continuous plant. -/
+/-- A bounded discrete controller remains independent of the compiler representation. -/
 def boundedInventory (capacity : Nat) : TransitionSystem Nat where
   initial s := s = 0
   step s t := t = s ∨ (s < capacity ∧ t = s + 1) ∨ (0 < s ∧ t = s - 1)
@@ -94,9 +76,27 @@ theorem reachable_within_capacity (capacity s : Nat)
     (reachable : Reachable (boundedInventory capacity) s) : s ≤ capacity :=
   (bounded_invariant capacity).reachable reachable
 
-/-- General pass composition transfers the certificate without reproving the requirement. -/
 example (first second : PreservingPass Inventory) :
     Verified ((first.andThen second).run model) conserved :=
   (first.andThen second).verified inventory_verified
+
+/-- The semantic DSL composes typed models, not untyped component records. -/
+def pairedInventory : Design.System (Inventory × Inventory) :=
+  engineering_system ⟨["synthesis.examples", "paired-inventory"]⟩ where
+    Frontend.place "left" model Prod.fst
+    Frontend.place "right" model Prod.snd
+    Frontend.constrain (IR.Standard.relation "initial-agreement"
+      (.named "synthesis.examples" "inventory-initial-agreement"))
+      (fun x => x.1.before = x.2.before)
+
+example : (Frontend.compileSystem pairedInventory).isOk = true := by decide
+
+-- Two placements share the original definition: root, two wrappers, one inventory definition.
+example : pairedInventory.lower.definitions.length = 4 := by decide
+
+example (compiled : Semantics.Model (Inventory × Inventory))
+    (h : Frontend.compileSystem pairedInventory = .ok compiled) :
+    ∀ x, compiled.behavior x ↔ pairedInventory.behavior x :=
+  Frontend.compileSystem_preserves pairedInventory compiled h
 
 end Synthesis.Examples.Assurance

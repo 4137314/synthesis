@@ -5,39 +5,32 @@ set_option autoImplicit false
 universe u
 variable {Observation : Type u}
 
-/-- A domain primitive binds a complete parameterized interface to its mathematical
-relation. It is a single-node frontend model, not a target instruction. -/
+/-- A single reusable definition and its complete relational model. -/
 structure Primitive (Observation : Type u) where
-  component : IR.Component
+  definition : IR.Definition
   meaning : Logic.Behavior Observation
-  valid : (IR.Technology.mk component.name [component] []).valid = true
+  valid : ({ definitions := [definition], root := definition.id } : IR.Module).Structural
 
-def Primitive.model (primitive : Primitive Observation) : Model Observation where
-  graph := ⟨⟨primitive.component.name, [primitive.component], []⟩, primitive.valid⟩
-  interpretation := {
-    component := fun c => if c = primitive.component then some primitive.meaning else none
-    connection := fun _ => none
-  }
-  supported := by
-    constructor
-    · intro c hc
-      simp only [List.mem_singleton] at hc
-      subst c
-      exact ⟨primitive.meaning, by simp⟩
-    · simp
+def Primitive.ir (p : Primitive Observation) : IR.Module :=
+  { definitions := [p.definition], root := p.definition.id }
 
-theorem Primitive.behavior_iff (primitive : Primitive Observation) (x : Observation) :
-    primitive.model.behavior x ↔ primitive.meaning x := by
+def Primitive.model (p : Primitive Observation) : Model Observation where
+  graph := ⟨p.ir, p.valid⟩
+  interpretation := ⟨fun m => if m = p.ir then some p.meaning else none⟩
+  supported := ⟨p.meaning, by simp⟩
+
+theorem Primitive.behavior_iff (p : Primitive Observation) (x : Observation) :
+    p.model.behavior x ↔ p.meaning x := by
   simp [Model.behavior, Interpretation.Meaning, model]
 
-theorem Primitive.verify (primitive : Primitive Observation) (requirement : Logic.Contract Observation)
-    (feasible : ∃ x, primitive.meaning x ∧ requirement.assumption x)
-    (correct : Logic.Contract.Satisfies primitive.meaning requirement) :
-    Verified primitive.model requirement := by
+theorem Primitive.verify (p : Primitive Observation) (requirement : Logic.Contract Observation)
+    (feasible : ∃ x, p.meaning x ∧ requirement.assumption x)
+    (correct : Logic.Contract.Satisfies p.meaning requirement) :
+    Verified p.model requirement := by
   constructor
   · obtain ⟨x, hx, ha⟩ := feasible
-    exact ⟨x, (primitive.behavior_iff x).mpr hx, ha⟩
+    exact ⟨x, (p.behavior_iff x).mpr hx, ha⟩
   · intro x hx ha
-    exact correct x ((primitive.behavior_iff x).mp hx) ha
+    exact correct x ((p.behavior_iff x).mp hx) ha
 
 end Synthesis.Semantics

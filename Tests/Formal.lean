@@ -3,12 +3,8 @@ import Synthesis.Examples.Assurance
 open Synthesis Synthesis.Logic Synthesis.Semantics Synthesis.Physics
 open Synthesis.Examples.Assurance
 
--- The semantic frontend accepts the known interpretation without changing its graph.
-example : (Frontend.compileModel design interpretation model.supported).isOk = true := by decide
-
--- Semantic coverage cannot bypass structural checking.
-example : (Frontend.compileModel { design with name := "" }
-    interpretation model.supported).isOk = false := by decide
+-- The rich semantic frontend preserves the source relation.
+example : (Frontend.compileModel design).isOk = true := by decide
 
 -- An implementation cannot silently strengthen its environmental assumptions.
 example : ¬Contract.Refines
@@ -37,17 +33,15 @@ example : True := by
 example : ¬(Balance.Holds (Scalar := Int) (d := inventoryDimension)
     ⟨⟨4⟩, ⟨4⟩, ⟨0⟩, ⟨0⟩, ⟨1⟩⟩) := by simp [Balance.Holds]
 
--- Coverage includes couplings: recognizing all components alone is insufficient.
-example : ¬interpretation.Supported {
-    design.lower with connections := [⟨⟨"inventory", "a"⟩, ⟨"inventory", "b"⟩⟩] } := by
-  intro h
-  obtain ⟨meaning, found⟩ := h.2 ⟨⟨"inventory", "a"⟩, ⟨"inventory", "b"⟩⟩ (by simp)
-  cases found
+-- Missing whole-module coverage cannot become an unconstrained behavior.
+example (m : IR.Module) (x : Unit) :
+    ¬(Semantics.Interpretation.mk (fun _ => none)).Meaning m x :=
+  Semantics.unsupported rfl x
 
--- A pass must preserve behavior, not merely return a structurally valid graph.
-example : ¬(∀ x, impossible.behavior x ↔ (fun _ : Unit => True) x) := by
-  intro h
-  have hx := (h ()).mpr trivial
-  obtain ⟨meaning, found, law⟩ := hx.1 storage (by simp [impossible, model, design, Frontend.Design.lower])
-  cases found
-  exact law
+-- Refinement does not manufacture feasibility.
+example : Interop.Refines (fun _ : Unit => False) (fun _ : Unit => True) id :=
+  fun _ h => False.elim h
+
+-- Rich composition rejects duplicate placement identities; semantic coverage cannot bypass it.
+example : (Frontend.compileSystem { pairedInventory with
+    parts := pairedInventory.parts ++ pairedInventory.parts }).isOk = false := by decide

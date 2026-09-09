@@ -1,11 +1,11 @@
 import Synthesis.Core.Dimension
-import Synthesis.IR.AST
-import Synthesis.Frontend.Compile
+import Synthesis.Core.Identity
 import Synthesis.Logic.Contract
 import Synthesis.Systems.Transition
 import Synthesis.Physics.Quantity
-import Synthesis.Semantics.Model
-import Synthesis.IR.WellFormed
-import Synthesis.Frontend.Elaborate
-import Synthesis.Semantics.Primitive
 import Synthesis.Physics.Rational
+import Synthesis.IR
+import Synthesis.Semantics
+import Synthesis.Design
+import Synthesis.Frontend
+import Synthesis.Interop

@@ -10,8 +10,8 @@ The vocabulary of the exact rational layer: the four passive parameter types wit
 admissibility evidence they carry, the observation types used at a terminal pair, and
 the SI exponent identities the constitutive laws must respect.
 
-Coefficients are rational literals, which is what AST schema 2 stores, so every element
-built on these types binds into `IR.Component` parameters without an approximation
+Coefficients are rational literals, an exact subset of IR schema 3, so every element
+built on these types binds into `IR.Parameter` defaults or instance bindings without an approximation
 contract. Continuous time, real coefficients, complex impedance and network topology
 belong to the Mathlib layer under `Synthesis.Domains.Electronics.Analytic`.
 

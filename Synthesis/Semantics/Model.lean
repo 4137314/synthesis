@@ -1,25 +1,35 @@
-import Synthesis.IR.AST
+import Synthesis.IR.Extension
 import Synthesis.Logic.Contract
 
 namespace Synthesis.Semantics
 open Logic
+set_option autoImplicit false
+universe u v
+variable {α : Type u} {β : Type v}
 
-/-- A domain package interprets full components, including their interface. `none`
-means unsupported, not an unconstrained component. Both operations and couplings
-must be interpreted; a connection is never silently assigned physical semantics. -/
+/-- An interpreter must cover the complete module, including bindings, attributes,
+junctions and behavior bodies. Unknown constructs return `none`. -/
 structure Interpretation (Observation : Type u) where
-  component : IR.Component → Option (Behavior Observation)
-  connection : IR.Connection → Option (Behavior Observation)
+  meaning : IR.Module → Option (Behavior Observation)
 
-def Interpretation.Supported (semantics : Interpretation α) (ast : IR.Technology) : Prop :=
-  (∀ c ∈ ast.components, ∃ meaning, semantics.component c = some meaning) ∧
-  (∀ c ∈ ast.connections, ∃ meaning, semantics.connection c = some meaning)
+def Interpretation.Supported (i : Interpretation α) (m : IR.Module) : Prop :=
+  ∃ b, i.meaning m = some b
 
-/-- Existential lookup makes an unsupported operation denote no behavior. -/
-def Interpretation.Meaning (semantics : Interpretation α) (ast : IR.Technology) : Behavior α :=
-  fun x =>
-    (∀ c ∈ ast.components, ∃ meaning, semantics.component c = some meaning ∧ meaning x) ∧
-    (∀ c ∈ ast.connections, ∃ meaning, semantics.connection c = some meaning ∧ meaning x)
+def Interpretation.Meaning (i : Interpretation α) (m : IR.Module) : Behavior α :=
+  fun x => ∃ b, i.meaning m = some b ∧ b x
+
+/-- Local state and interface spaces need not be the global observation type. -/
+structure LocalRelation (Global : Type u) where
+  Local : Type v
+  observe : Global → Local
+  relation : Behavior Local
+
+def LocalRelation.behavior (part : LocalRelation.{u,v} α) : Behavior α :=
+  fun x => part.relation (part.observe x)
+
+/-- Composition is conjunction of pulled-back local relations. Feasibility is separate. -/
+def assemble (parts : List (LocalRelation.{u,v} α)) : Behavior α :=
+  fun x => ∀ part ∈ parts, part.behavior x
 
 structure Model (Observation : Type u) where
   graph : IR.Validated
@@ -29,21 +39,16 @@ structure Model (Observation : Type u) where
 def Model.behavior (model : Model α) : Behavior α :=
   model.interpretation.Meaning model.graph.ast
 
-/-- Evidence belongs to a particular graph, interpretation and operating envelope.
-Feasibility rules out empty semantics, but is not universal input realizability. -/
 structure Verified (model : Model α) (requirement : Contract α) : Prop where
   feasible : ∃ x, model.behavior x ∧ requirement.assumption x
   correct : Contract.Satisfies model.behavior requirement
 
-/-- A compiler transformation carries a behavior-preservation obligation. Structural
-validity alone is insufficient. Equality also preserves feasibility. -/
+/-- Exact endomorphisms are a convenience specialization of the general transformation API. -/
 structure PreservingPass (Observation : Type u) where
   run : Model Observation → Model Observation
   preserves : ∀ model x, (run model).behavior x ↔ model.behavior x
 
-def PreservingPass.identity : PreservingPass α :=
-  ⟨id, fun _ _ => Iff.rfl⟩
-
+def PreservingPass.identity : PreservingPass α := ⟨id, fun _ _ => Iff.rfl⟩
 def PreservingPass.andThen (first second : PreservingPass α) : PreservingPass α :=
   ⟨fun model => second.run (first.run model),
    fun model x => (second.preserves (first.run model) x).trans (first.preserves model x)⟩
@@ -57,13 +62,9 @@ theorem PreservingPass.verified (pass : PreservingPass α) {model : Model α}
   · intro x hx ha
     exact proof.correct x ((pass.preserves model x).mp hx) ha
 
-/-- Missing semantics cannot accidentally yield an accepted behavior. -/
-theorem unsupported_component {semantics : Interpretation α} {ast : IR.Technology}
-    {component : IR.Component} (member : component ∈ ast.components)
-    (missing : semantics.component component = none) :
-    ∀ x, ¬semantics.Meaning ast x := by
-  intro x h
-  obtain ⟨meaning, found, _⟩ := h.1 component member
+theorem unsupported {i : Interpretation α} {m : IR.Module}
+    (missing : i.meaning m = none) (x : α) : ¬i.Meaning m x := by
+  rintro ⟨b, found, _⟩
   rw [missing] at found
   cases found
 

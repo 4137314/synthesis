@@ -1,6 +1,7 @@
 import Synthesis.Domains.Electronics
 import Synthesis.Domains.Thermal
 import Synthesis.Semantics.Primitive
+import Synthesis.IR.Standard
 
 namespace Synthesis.Bridges.Electrothermal
 open Domains Physics Semantics
@@ -22,15 +23,18 @@ structure Point where
   heat : Thermal.HeatRate
 
 def heater (r : Electronics.Resistor) : Primitive Point where
-  component := {
-    name := "joule-heater"
-    operation := "synthesis.bridges.joule-heater.v1"
-    ports := [⟨"current", .input, .quantity .electronics .currentDim⟩,
-      ⟨"heat", .output, .quantity .thermal .power⟩]
-    parameters := [⟨"resistance", .resistance, r.quantity.value⟩]
+  definition := {
+    id := ⟨["synthesis.models", "joule-heater"]⟩
+    operations := [IR.Standard.relation "law" (.named "synthesis.models" "synthesis.bridges.joule-heater.v1")]
+    ports := [IR.Standard.observable "synthesis.electronics" "current" .currentDim,
+      IR.Standard.observable "synthesis.thermal" "heat" .power]
+    parameters := [IR.Standard.rationalParameter "resistance" .resistance (r.quantity.value)]
   }
   meaning x := x.heat = heat r x.current
-  valid := by simp [IR.Technology.valid, IR.uniqueNames] <;> decide
+  valid := by constructor <;> simp [IR.Module.identitiesValid, IR.Module.referencesValid,
+    IR.Definition.identitiesValid, IR.namesValid, IR.qualifiedValid, IR.unique,
+    IR.Module.definition?, IR.Module.acyclic, IR.Standard.rationalParameter,
+    IR.Standard.observable, IR.Standard.relation, IR.Operation.name, IR.operationIdentities, IR.Operation.identitiesValid] <;> decide
 
 theorem heater_verified (r : Electronics.Resistor) :
     Verified (heater r).model ⟨fun _ => True, fun x =>

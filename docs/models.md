@@ -15,7 +15,7 @@ No project-specific global logical assumptions are introduced.
 
 The electronics domain has two layers. `Synthesis.Domains.Electronics` is exact,
 rational and independent of Mathlib: it holds every element whose coefficients are
-stored as AST parameters, and it is itself decomposed into `Electronics.Exact.{Units,
+stored as exact IR parameters, and it is itself decomposed into `Electronics.Exact.{Units,
 Resistor, Capacitor, Inductor, Source}`. `Synthesis.Domains.Electronics.Analytic` is the
 umbrella of the analytic layer and uses Mathlib for ordered fields, real calculus and
 complex numbers. See [ADR 0005](adr/0005-electronics-domain-package.md) for the boundary
@@ -75,8 +75,8 @@ capacitance and parallel inductance are expressed through reciprocal parameters
 (`elastance`) so that the laws stay additive and division free.
 
 `Components.resistor`, `Components.conductor`, `Components.capacitor`,
-`Components.inductor` and `Components.voltageSource` bind these coefficients into AST
-schema 2 parameters. `resistor_passive`, `conductor_passive`,
+`Components.inductor` and `Components.voltageSource` bind these coefficients into IR
+schema 3 exact parameter defaults. `resistor_passive`, `conductor_passive`,
 `capacitor_energy_nonnegative` and `inductor_energy_nonnegative` are unconditional
 certificates; `source_delivers` is conditional on a stated current direction, because an
 ideal source is active and has no passivity theorem. Tests cover negative current,
@@ -469,7 +469,7 @@ element, consistent with [balanced chemical equations](https://openstax.org/book
 Proved: `Reaction.conserves`, `Reaction.parallel_balanced`, `network_inventory_invariant`,
 and `reachable_elements_conserved`. The concrete `Water.formation` describes
 `2 H2 + O2 → 2 H2O`; `Water.formation_balanced` checks both elements and
-`Components.water_atoms_conserved` certifies the AST primitive. A missing-reactant
+`Components.water_atoms_conserved` certifies the IR primitive. A missing-reactant
 case is rejected. Lists give a restricted ordered operational model, not complete
 multiset rewriting. No kinetics, concentrations, reaction energy, thermodynamic
 favorability, safety or nuclear mass conversion is inferred from stoichiometry.
@@ -486,14 +486,14 @@ Proved: `Gate.preserves_normalization`, the obligations of `Gate.andThen`,
 certifies a finite recognized gate catalog; tests include a nontrivial normalized
 superposition. No Hadamard gate, arbitrary phase, measurement, entanglement or noise
 model is implemented. Complex rationals exclude amplitudes such as `1 / sqrt(2)`.
-AST quantum fan-out rejection remains a separate wiring invariant.
+Resource fan-out rejection is an explicit connector-policy invariant, distinct from gate semantics.
 
 ## Electrothermal coupling
 
 `Synthesis.Bridges.Electrothermal` assumes all ideal resistor dissipation is exported
 as heat, without storage or other energy channels. `power_conserved`,
 `heat_nonnegative`, and `heater_verified` prove conservation and passivity in this
-explicit coupling model. Its AST primitive exposes electrical current and thermal
+explicit coupling model. Its IR primitive exposes electrical current and thermal
 power ports and carries the resistance parameter. It is not a temperature predictor.
 
 ## Evidence and compilation
@@ -502,11 +502,11 @@ power ports and carries the resistance parameter. It is not a temperature predic
 interpretations. A changed parameter, dimension, port list or operation is unsupported
 by that exact recognizer. `Semantics.Primitive.verify` transfers domain reasoning into
 `Semantics.Verified`, requiring feasibility and universal conditional correctness.
-`Tests.Engineering.compiledResistor` exercises semantic frontend compilation.
+`Synthesis.Examples.Assurance.design` exercises rich semantic frontend compilation.
 
-Primitive models contain one node and no edges. Composition of multi-node physical
+Primitive models contain one reusable definition and no junctions. Composition of multi-node physical
 models still requires explicit coupling interpretations and compatibility proofs;
-these single-node certificates do not establish arbitrary network correctness.
+these single-definition certificates do not establish arbitrary network correctness.
 
 ## Mathlib real-valued electronics
 
@@ -520,7 +520,51 @@ Neither this module nor the analytic electronics package is a continuous-time si
 or a discretization theorem. `Electronics.Storage` and `Electronics.Transient` prove
 properties of stated differential relations and of one closed-form solution family;
 they do not construct solutions for arbitrary networks, and no numerical error bound is
-provided anywhere. Real-valued coefficients are not compilable into rational AST
-parameters without a separate representation or an explicit approximation contract.
+provided anywhere. Real-valued coefficients are not compilable into rational IR
+literals without a separate representation or an explicit approximation contract.
 Mathlib and its transitive dependencies are pinned, and `scripts/cache.sh` fetches
 exactly the import closure these modules use.
+
+
+## Schema 3 representation and conservative terminal adapter
+
+The existing exact certificates in Domains.Components and Bridges.Electrothermal now
+use IR.Definition, symbolic-capable IR.Parameter and complete module recognizers.
+Calculated quantities are relational observations, not fabricated input/output causality.
+Their original laws, feasibility witnesses and conditional guarantees are unchanged.
+The rich source/IR link in Examples.Assurance proves denotation preservation and
+requirement declaration retention; retention alone is not a requirement encoding theorem.
+
+Semantics.Conservative defines across-variable equality and signed through balance for
+an arbitrary list of terminals. `Conservative.balanced` is its balance consequence.
+This is a stated junction law, not empirical evidence for an arbitrary connector.
+The domain must choose compatible quantities and orientation. Structural incidence
+checking in IR.Connector is deliberately separate from this semantic predicate.
+
+Electronics.Interface provides a reusable resistorDefinition with two acausal terminals,
+a symbolic resistance parameter and explicit Ohm/terminal-balance term equations.
+resistorIR binds that parameter without duplicating the definition. The model assumes
+an ideal memoryless resistor, coherent units and currents entering the device; junction
+currents have the opposite sign. `resistor_meaning` identifies the model relation,
+`ohm_compatible` relates it to the established exact voltage law, and `resistor_verified`
+proves feasible nonnegative absorbed power using the existing passivity theorem.
+This does not prove arbitrary network assembly correct, nor automatically connect an
+IR junction list to the separate analytic Network topology. Such an assembly/lowering
+needs an explicit incidence/orientation mapping and preservation theorem.
+
+QuantityKind/KindQuantity and AffineUnit distinguish semantic kinds, dimensions and
+affine source coordinates. AffineUnit.normalize implements the declared rational scale
+and offset with a nonzero-scale premise. No comprehensive unit catalog, empirical unit
+calibration, uncertainty arithmetic or numerical approximation theorem is introduced.
+All architecture fixtures are representation/validation tests, not new physical theories
+for hydraulics, RF, FEM, navigation or nuclear systems.
+
+
+Design.System and Frontend.engineering_system provide source-level typed composition.
+Each part retains its local observation space and covered model; projections, coupling
+relations and constraint relations are explicit. System.behavior is their conjunction.
+System.represented and compileSystem_preserves relate the lowered module to that source
+semantics. No joint feasibility or physical applicability is inferred. Child module
+metadata and root bindings survive wrapper definitions/instances, and identical child
+definitions are shared. Examples.Assurance.pairedInventory checks two typed inventory
+placements and an explicit initial-agreement law; duplicate placements are rejected.

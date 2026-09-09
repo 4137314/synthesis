@@ -91,8 +91,22 @@ def main() -> int:
                     graph[module].append(dependency)
             if module.startswith("Synthesis") and dependency.startswith("Tests."):
                 errors.append(f"{module}: production module imports tests")
-            kernel = module == "Synthesis" or module.startswith(tuple(
-                f"Synthesis.{layer}." for layer in ("Core", "Logic", "Physics", "Systems", "IR", "Semantics", "Frontend")))
+            layers = {
+                "Core": {"Core"}, "Logic": {"Logic"}, "Systems": {"Systems"},
+                "Physics": {"Core", "Physics"}, "IR": {"Core", "IR"},
+                "Semantics": {"Core", "IR", "Logic", "Semantics"},
+                "Design": {"Core", "IR", "Logic", "Semantics", "Design"},
+                "Frontend": {"Core", "IR", "Logic", "Semantics", "Design", "Frontend"},
+                "Interop": {"Core", "IR", "Logic", "Semantics", "Interop"},
+            }
+            layer = module.split(".")[1] if module.startswith("Synthesis.") else None
+            kernel = module == "Synthesis" or layer in layers
+            if layer in layers and dependency.startswith("Synthesis."):
+                dependency_layer = dependency.split(".")[1]
+                if dependency_layer not in layers[layer]:
+                    errors.append(f"{module}: forbidden layer dependency on {dependency}")
+            if layer in layers and dependency == "Synthesis":
+                errors.append(f"{module}: internal layer imports kernel umbrella")
             if kernel and dependency.startswith(("Synthesis.Domains", "Synthesis.Bridges", "Synthesis.Examples")):
                 errors.append(f"{module}: kernel imports a domain, bridge, or example")
             if module.startswith("Synthesis.Domains") and dependency.startswith(("Synthesis.Bridges", "Synthesis.Examples")):

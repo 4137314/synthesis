@@ -1,25 +1,20 @@
-import Synthesis.Frontend.Compile
+import Synthesis.Frontend.Builder
+import Synthesis.IR.Standard
 
 namespace Synthesis.Examples
 open IR Frontend
+set_option autoImplicit false
 
-/-- An explicit electro-optic interface. Operation names denote contracts to be defined
-by a domain library; this example does not assert a device physics model. -/
-def electroOptic : Design := {
-  name := "electro-optic-modulator"
-  components := [
-    ⟨"driver", "synthesis.electronics.voltage-source", [
-      ⟨"voltage", .output, .quantity .electronics .voltage⟩], []⟩,
-    ⟨"modulator", "synthesis.photonics.electro-optic", [
-      ⟨"drive", .input, .quantity .electronics .voltage⟩,
-      ⟨"light", .output, .quantity .photonics .scalar⟩], []⟩,
-    ⟨"receiver", "synthesis.photonics.receiver", [
-      ⟨"light", .input, .quantity .photonics .scalar⟩], []⟩]
-  connections := [
-    ⟨⟨"driver", "voltage"⟩, ⟨"modulator", "drive"⟩⟩,
-    ⟨⟨"modulator", "light"⟩, ⟨"receiver", "light"⟩⟩]
-}
+/-- Explicit bridge interface. This example claims structure, not coupling physics. -/
+def electroOpticBridge : Definition := engineering ⟨["examples", "electro-optic"]⟩ where
+  port (Standard.observable "electrical" "drive" .voltage)
+  port (Standard.observable "optical" "power" .power)
+  operation (Standard.relation "coupling" (.named "examples" "electro-optic-law"))
 
-example : electroOptic.lower.valid = true := by decide
+def electroOptic : Module := design (engineering ⟨["examples", "system"]⟩ where
+  instanceOf "left" electroOpticBridge.id
+  instanceOf "right" electroOpticBridge.id) [electroOpticBridge]
+
+example : electroOptic.Structural := by constructor <;> decide
 
 end Synthesis.Examples

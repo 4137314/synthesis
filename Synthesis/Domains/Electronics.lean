@@ -1,3 +1,4 @@
+import Synthesis.Domains.Electronics.Interface
 import Synthesis.Domains.Electronics.Exact.Units
 import Synthesis.Domains.Electronics.Exact.Resistor
 import Synthesis.Domains.Electronics.Exact.Capacitor
@@ -7,8 +8,8 @@ import Synthesis.Domains.Electronics.Exact.Source
 /-! # Exact rational electronics
 
 Umbrella of the exact, computable core of the electronics domain. Coefficients are
-rational literals, which is what AST schema 2 stores, so every element re-exported here
-can be bound into `IR.Component` parameters without an approximation contract.
+rational literals, an exact subset of IR schema 3, so every element re-exported here
+can be bound into `IR.Parameter` defaults or instance bindings without an approximation contract.
 
 The core is deliberately free of Mathlib: it is what the runtime frontend regression
 executable links, and keeping it independent preserves the property recorded in

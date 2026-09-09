@@ -2,6 +2,9 @@
 
 Status: accepted. Package/API version 0.3.0; AST schema 2.
 
+The schema-2/API portions are superseded by [ADR 0007](0007-open-engineering-ir.md).
+The mathematical domain decisions remain in force.
+
 ## Decision
 
 Introduce separate domain and bridge umbrellas, leaving `Synthesis` as the reusable

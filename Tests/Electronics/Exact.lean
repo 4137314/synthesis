@@ -64,11 +64,8 @@ example : (Electronics.elastance capacitor).quantity.value = 1000 := by
 
 /-! ## Certificates on the compiled component catalog -/
 
-example : (Components.capacitor capacitor).component.parameters =
-    [⟨"capacitance", .capacitance, 1 / 1000⟩] := rfl
-
-example : (Components.inductor inductor).component.operation =
-    "synthesis.electronics.inductor.v1" := rfl
+example : (Components.capacitor capacitor).definition.parameters =
+    [IR.Standard.rationalParameter "capacitance" .capacitance (1 / 1000)] := rfl
 
 example : Verified (Components.capacitor capacitor).model
     ⟨fun _ => True, fun x => 0 ≤ x.energy.value⟩ :=
@@ -86,31 +83,23 @@ example : Verified (Components.voltageSource source).model
     ⟨fun x => 0 ≤ x.current.value, fun x => 0 ≤ x.delivered.value⟩ :=
   Components.source_delivers source (by decide)
 
--- A changed coefficient is not the same component and has no interpretation.
-example : (Components.capacitor capacitor).model.interpretation.component
-    { (Components.capacitor capacitor).component with
-      parameters := [⟨"capacitance", .capacitance, 1 / 500⟩] } = none := by
-  simp [Primitive.model, Components.capacitor, capacitor, IR.Component.mk.injEq,
-    Parameter.mk.injEq]
-
--- A changed parameter dimension is likewise unsupported.
-example : (Components.inductor inductor).model.interpretation.component
-    { (Components.inductor inductor).component with
-      parameters := [⟨"inductance", .capacitance, 2⟩] } = none := by
-  simp [Primitive.model, Components.inductor, inductor, IR.Component.mk.injEq,
-    Parameter.mk.injEq, Dimension.inductance, Dimension.capacitance]
-
--- The compiled graph of a storage element remains structurally valid.
+-- Defaults retain exact coefficients, and duplicate declarations are rejected.
+example : (Frontend.compile (Components.capacitor capacitor).ir).isOk = true := by decide
 example : (Frontend.compile {
-    name := "capacitor-bank"
-    components := [(Components.capacitor capacitor).component] }).isOk = true := by decide
+    (Components.capacitor capacitor).ir with definitions := [{
+      (Components.capacitor capacitor).definition with parameters :=
+        [IR.Standard.rationalParameter "capacitance" .capacitance 1,
+         IR.Standard.rationalParameter "capacitance" .capacitance 2] }] }).isOk = false := by decide
 
--- Duplicate parameters are rejected at the frontend.
-example : (Frontend.compile {
-    name := "bad-capacitor"
-    components := [{ (Components.capacitor capacitor).component with
-      parameters := [⟨"capacitance", .capacitance, 1⟩, ⟨"capacitance", .capacitance, 2⟩] }]
-    }).isOk = false := by decide
+-- A changed dimension is not the same complete model.
+example : (Components.inductor inductor).model.interpretation.meaning
+    { (Components.inductor inductor).ir with definitions := [{
+      (Components.inductor inductor).definition with parameters :=
+        [IR.Standard.rationalParameter "inductance" .capacitance 2] }] } = none := by
+  simp [Primitive.model, Primitive.ir, Components.inductor, inductor,
+    IR.Module.mk.injEq, IR.Definition.mk.injEq, IR.Standard.rationalParameter,
+    IR.Parameter.mk.injEq, IR.Standard.quantity, IR.TypeExpr.mk.injEq,
+    IR.Standard.dimensions, Dimension.inductance, Dimension.capacitance]
 
 /-! ## Structural properties of the exact elements -/
 

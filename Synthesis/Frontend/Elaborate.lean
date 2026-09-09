@@ -1,24 +1,25 @@
 import Synthesis.Frontend.Compile
-import Synthesis.Semantics.Model
+import Synthesis.Design.Model
 
 namespace Synthesis.Frontend
+set_option autoImplicit false
+universe u v
+variable {Source : Type u} {Observation : Type v}
 
-/-- Resolve semantic coverage before compilation. A caller must prove every component
-and coupling is supported; physical requirement proofs are a separate `Verified` value. -/
-def compileModel (design : Design) (semantics : Semantics.Interpretation α)
-    (supported : semantics.Supported design.lower) : Except CompileError (Semantics.Model α) :=
-  if h : design.lower.valid = true then
-    .ok ⟨⟨design.lower, h⟩, semantics, supported⟩
-  else .error .invalidStructure
+/-- The source-to-IR denotation proof remains kernel checked. -/
+def compileModel (design : Design.Model Source Observation) :
+    Except CompileError (Semantics.Model Observation) :=
+  if h : (design.lower design.source).Structural then
+    .ok ⟨⟨design.lower design.source, h⟩, design.interpretation, design.supported⟩
+  else .error (design.lower design.source).diagnostics
 
-theorem compileModel_preserves (design : Design) (semantics : Semantics.Interpretation α)
-    (supported : semantics.Supported design.lower) (model : Semantics.Model α)
-    (h : compileModel design semantics supported = .ok model) :
-    model.graph.ast = design.lower ∧ model.interpretation = semantics := by
+theorem compileModel_preserves (design : Design.Model Source Observation)
+    (model : Semantics.Model Observation) (h : compileModel design = .ok model) :
+    ∀ x, model.behavior x ↔ design.behavior design.source x := by
   unfold compileModel at h
   split at h
   · cases h
-    exact ⟨rfl, rfl⟩
+    exact design.represented
   · cases h
 
 end Synthesis.Frontend

@@ -2,6 +2,9 @@
 
 Status: accepted. Package/API version 0.4.0; AST schema 2 is unchanged.
 
+The schema-2/API portions are superseded by [ADR 0007](0007-open-engineering-ir.md).
+The mathematical domain decisions remain in force.
+
 ## Context
 
 The electronics domain was a single module containing one ideal resistor. Circuit

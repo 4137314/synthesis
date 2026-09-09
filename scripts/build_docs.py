@@ -3,6 +3,7 @@
 from pathlib import Path
 import posixpath
 import re
+import shutil
 import subprocess
 from urllib.parse import urlsplit, urlunsplit
 
@@ -19,6 +20,12 @@ def run(*arguments: str) -> None:
 
 def main() -> None:
     BUILD.mkdir(parents=True, exist_ok=True)
+    # A removed/renamed public module must not survive in the database or generated site.
+    for name in ("api-docs.db", "api-docs.db-wal", "api-docs.db-shm"):
+        (BUILD / name).unlink(missing_ok=True)
+    for generated in (OUTPUT, BUILD / "doc-data"):
+        if generated.exists():
+            shutil.rmtree(generated)
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     origin = subprocess.check_output(["git", "remote", "get-url", "origin"], cwd=ROOT, text=True).strip()
     if origin.startswith("git@github.com:"):

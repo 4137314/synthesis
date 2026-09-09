@@ -8,8 +8,9 @@ OUTPUT = ROOT / "docbuild/.lake/build/api/doc"
 
 
 def main() -> None:
-    required = ["index.html", "Synthesis.html", "Synthesis/Domains.html", "Synthesis/Bridges.html"]
-    for folder in ["Core", "Logic", "Physics", "Systems", "IR", "Semantics", "Frontend", "Domains", "Bridges"]:
+    required = ["index.html", "Synthesis.html", "Synthesis/Domains.html", "Synthesis/Bridges.html", "Synthesis/IR.html", "Synthesis/Design.html",
+                "Synthesis/Semantics.html", "Synthesis/Frontend.html", "Synthesis/Interop.html"]
+    for folder in ["Core", "Logic", "Physics", "Systems", "IR", "Semantics", "Design", "Interop", "Frontend", "Domains", "Bridges"]:
         for source in (ROOT / "Synthesis" / folder).rglob("*.lean"):
             required.append(str(source.relative_to(ROOT).with_suffix(".html")))
     missing = [name for name in required if not (OUTPUT / name).is_file()]
@@ -20,10 +21,17 @@ def main() -> None:
     if not index.is_file():
         raise SystemExit("Missing declaration search data")
     declarations = json.loads(index.read_text(encoding="utf-8")).get("declarations", {})
-    for name in ["Synthesis.Frontend.compile", "Synthesis.Domains.RealElectronics.passive",
+    for name in ["Synthesis.IR.Module", "Synthesis.IR.Extension", "Synthesis.IR.Typed",
+                 "Synthesis.Design.Model", "Synthesis.Design.System", "Synthesis.Frontend.compileSystem",
+                 "Synthesis.Interop.Exporter",
+                 "Synthesis.Frontend.compile", "Synthesis.Domains.RealElectronics.passive",
                  "Synthesis.Bridges.Electrothermal.heater_verified"]:
         if name not in declarations:
             raise SystemExit(f"Missing searchable public declaration: {name}")
+    for name in ("Synthesis.IR.Technology", "Synthesis.IR.Component", "Synthesis.IR.Domain",
+                 "Synthesis.IR.PortType", "Synthesis.Parameter"):
+        if name in declarations:
+            raise SystemExit(f"Obsolete schema-2 declaration remains searchable: {name}")
     print(f"documentation: {len(required)} public API pages and search data verified")
 
 
