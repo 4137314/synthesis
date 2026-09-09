@@ -15,6 +15,7 @@ lake exe cache get \
   Mathlib.Analysis.SpecialFunctions.ExpDeriv \
   Mathlib.Analysis.SpecialFunctions.Log.Basic \
   Mathlib.Analysis.SpecialFunctions.Sqrt \
+  Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv \
   Mathlib.Data.Fintype.BigOperators \
   Mathlib.Data.Real.Basic \
   Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus \

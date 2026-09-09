@@ -88,11 +88,15 @@ and what remains assumed. See [domain development](domain-development.md).
 `Synthesis.Domains` exports electronics, thermal, mechanics/materials, photonics,
 chemistry and exact elementary quantum models, plus parameterized primitive adapters.
 Electronics is itself layered: `Synthesis.Domains.Electronics` holds the exact rational
-elements that carry AST parameters, and `Synthesis.Domains.Electronics.*` holds the
-Mathlib-based analytic theory (terminal relations, interconnection algebra, Kirchhoff
-and Tellegen, nodal analysis, source equivalence, continuous-time storage, transients,
-phasors, nonlinear devices, feedback and logic levels). See
-[ADR 0005](adr/0005-electronics-domain-package.md).
+elements that carry AST parameters, and `Synthesis.Domains.Electronics.Analytic` is the
+umbrella of the Mathlib-based analytic theory (terminal relations, Thévenin equivalence,
+interconnection algebra, Kirchhoff and Tellegen, nodal analysis, source equivalence,
+continuous-time storage, first- and second-order transients, phasors, sinusoidal power,
+frequency response, multiports, nonlinear devices, feedback and logic levels). Both
+layers are decomposed into one module per theory, each directory carrying an umbrella
+that re-exports its parts and maps them. See
+[ADR 0005](adr/0005-electronics-domain-package.md) and
+[ADR 0006](adr/0006-electronics-module-decomposition.md).
 `Synthesis.Bridges` exports explicit domain couplings; the initial bridge is an ideal
 Joule heater. The kernel does not import these umbrellas. See [models](models.md) for
 the exact definitions, theorem inventory, sources and limitations.
@@ -110,8 +114,10 @@ New modules omitted from that closure fail CI rather than escaping the audit.
 ## Mathematics and documentation dependencies
 
 Mathlib is pinned to the Lean 4.32.2 release and used by `Domains.RealElectronics` and
-the analytic electronics package. `scripts/cache.sh` fetches exactly their import
-closure; adding a Mathlib import to a module requires extending that list.
+the analytic electronics package. The exact rational core stays Mathlib free, which is
+what keeps the runtime frontend regression executable free of it. `scripts/cache.sh`
+fetches exactly their import closure; adding a Mathlib import to a module requires
+extending that list.
 The computable rational models retain their existing scalar semantics. Real-valued
 coefficients require a future explicit representation/approximation boundary to enter
 the rational AST. No implicit rounding is introduced.

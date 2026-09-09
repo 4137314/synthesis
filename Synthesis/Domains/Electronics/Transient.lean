@@ -3,6 +3,7 @@ import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Tactic.GCongr
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.LinearCombination
+import Synthesis.Domains.Electronics.Ode
 import Synthesis.Domains.Electronics.Storage
 
 namespace Synthesis.Domains.Electronics.Transient
@@ -15,10 +16,13 @@ constant `τ = R C` for a capacitor and `τ = L / R` for an inductor. This modul
 the closed-form solution, proves that it solves the equation, and proves that it is the
 *only* solution with the given initial value.
 
-Uniqueness is what makes the closed form a model rather than a guess: it is obtained by
-showing that `x(t) e^{t/τ}` has zero derivative, hence is constant. Nothing here assumes
-a particular circuit topology; `rcConstitutive` connects the solution to the element
-laws of `Synthesis.Domains.Electronics.Storage`. -/
+Uniqueness is what makes the closed form a model rather than a guess. The mathematics of
+it is `Synthesis.Domains.Electronics.Ode`, which this module instantiates at the
+coefficient `-1 / τ`; what belongs here is the identification of that coefficient with a
+circuit time constant. Nothing here assumes a particular circuit topology;
+`rcConstitutive` connects the solution to the element laws of
+`Synthesis.Domains.Electronics.Storage`, and the two-storage-element case is in
+`Synthesis.Domains.Electronics.SecondOrder` and `Synthesis.Domains.Electronics.Rlc`. -/
 
 open Filter Topology
 
@@ -87,33 +91,33 @@ theorem natural_ode (f : FirstOrder) (initial t : ℝ) :
 
 /-- **Uniqueness of the first-order solution.** Every differentiable trajectory obeying
 `τ x' + x = 0` is the natural response of its own initial value, so the closed form is
-the model's only behaviour. -/
+the model's only behaviour. The mathematics is `Ode.linear_unique`; what this statement
+adds is the identification of the coefficient with `-1 / τ`. -/
 theorem natural_unique (f : FirstOrder) (x rate : ℝ → ℝ)
     (differentiable : ∀ t, HasDerivAt x (rate t) t)
     (ode : ∀ t, f.timeConstant * rate t + x t = 0) (t : ℝ) :
     x t = f.natural (x 0) t := by
   have nonzero : f.timeConstant ≠ 0 := ne_of_gt f.positive
-  have derivative : ∀ s : ℝ,
-      HasDerivAt (fun y => x y * Real.exp (y / f.timeConstant)) 0 s := by
-    intro s
-    have inner : HasDerivAt (fun y : ℝ => y / f.timeConstant) (1 / f.timeConstant) s := by
-      simpa using (hasDerivAt_id s).div_const f.timeConstant
-    have product := (differentiable s).mul inner.exp
-    have vanishes : rate s * Real.exp (s / f.timeConstant) +
-        x s * (Real.exp (s / f.timeConstant) * (1 / f.timeConstant)) = 0 := by
-      have law := ode s
-      field_simp
-      linear_combination Real.exp (s / f.timeConstant) * law
-    rw [vanishes] at product
-    exact product
-  have constant : x t * Real.exp (t / f.timeConstant) = x 0 * Real.exp (0 / f.timeConstant) :=
-    is_const_of_deriv_eq_zero (fun y => (derivative y).differentiableAt)
-      (fun y => (derivative y).deriv) t 0
-  rw [zero_div, Real.exp_zero, mul_one] at constant
-  have positive := Real.exp_pos (t / f.timeConstant)
-  simp only [natural, neg_div, Real.exp_neg]
-  field_simp
-  linarith [constant]
+  have linear : Ode.Linear (-1 / f.timeConstant) x rate := by
+    refine ⟨differentiable, fun s => ?_⟩
+    have law := ode s
+    field_simp
+    linear_combination law
+  have closed := Ode.linear_unique linear t
+  have exponent : -1 / f.timeConstant * t = -t / f.timeConstant := by ring
+  simp only [natural]
+  rw [closed, exponent]
+
+/-- Two first-order trajectories with the same initial value coincide, which is the form
+used to identify a measured relaxation with the model. -/
+theorem natural_determined (f : FirstOrder) (x xrate y yrate : ℝ → ℝ)
+    (differentiableX : ∀ t, HasDerivAt x (xrate t) t)
+    (differentiableY : ∀ t, HasDerivAt y (yrate t) t)
+    (odeX : ∀ t, f.timeConstant * xrate t + x t = 0)
+    (odeY : ∀ t, f.timeConstant * yrate t + y t = 0)
+    (initial : x 0 = y 0) (t : ℝ) : x t = y t := by
+  rw [natural_unique f x xrate differentiableX odeX t,
+    natural_unique f y yrate differentiableY odeY t, initial]
 
 /-- The step response solves the forced equation `τ x' + x = x_∞`. -/
 theorem hasDerivAt_step (f : FirstOrder) (initial final t : ℝ) :

@@ -39,8 +39,14 @@ open Synthesis
 #check Domains.Electronics.Nodal.branch_voltage_unique
 #check Domains.Electronics.Source.maximum_power_transfer
 #check Domains.Electronics.Transient.FirstOrder.natural_unique
+#check Domains.Electronics.SecondOrder.overdamped_decomposition
+#check Domains.Electronics.Rlc.series_loop_solves
+#check Domains.Electronics.Thevenin.affine_unique
+#check Domains.Electronics.Power.apparent_sq
+#check Domains.Electronics.Filter.lowPass_cutoff
 #check Domains.Electronics.Magnetics.Coupled.energy_nonneg_iff
 #check Domains.Electronics.TwoPort.Impedance.passivity_iff
+#check Domains.Electronics.TwoPort.toImpedance_toAdmittance
 #check Domains.Components.optical_conservation
 #check Domains.Chemistry.reachable_elements_conserved
 #check Domains.Quantum.Gate.preserves_normalization
@@ -50,9 +56,11 @@ open Synthesis
 | Domain | Initial model | Proved properties |
 | --- | --- | --- |
 | Electronics (exact) | Resistor, conductor, capacitor, inductor, ideal sources | Passivity, series/parallel algebra, divider identities, stored energy, unique loop operating point |
-| Electronics (networks) | Finite topologies, nodal analysis, source equivalence | Kirchhoff laws, Tellegen's theorem, superposition, solution uniqueness, Thévenin/Norton, maximum power transfer |
-| Electronics (analytic) | Storage in continuous time, transients, phasors, devices, feedback, logic levels | Power as the derivative of stored energy, uniqueness of the first-order solution, resonance minimizes impedance, diode passivity, pinch-off continuity, ideal gains as limits, noise immunity |
-| Electronics (multiport) | Coupled inductors, ideal transformer, two-ports | Coupling bound equivalent to passivity, lossless transformer and impedance reflection, two-port passivity characterization, T realization, cascade reciprocity |
+| Electronics (networks) | Finite topologies, nodal analysis, source and one-port equivalence | Kirchhoff laws, Tellegen's theorem, superposition, solution uniqueness, Thévenin/Norton, uniqueness of the Thévenin equivalent, maximum power transfer |
+| Electronics (dynamics) | Storage in continuous time, first- and second-order transients, RLC circuits | Power as the derivative of stored energy, uniqueness of the first-order solution, completeness of the overdamped modes, no real mode below critical damping, circuit equations derived from the element laws |
+| Electronics (frequency) | Phasors, sinusoidal power, first-order filters | Resonance minimizes impedance, the power triangle, dissipation only in the resistive part, exact half-power cutoff and monotone roll-off |
+| Electronics (devices) | Diode, transistor, feedback, logic levels | Diode passivity, pinch-off continuity, ideal gains as limits, noise immunity |
+| Electronics (multiport) | Coupled inductors, ideal transformer, two-ports | Coupling bound equivalent to passivity, lossless transformer and impedance reflection, two-port passivity characterization, T and Π realizations, cascade reciprocity, verified parameter conversions |
 | Thermal | Steady lumped conductance | Equilibrium, heat-flow direction, terminal conservation, dissipation inequality |
 | Mechanics/materials | Uniaxial linear elasticity | Nonnegative energy density, strict stress monotonicity, uniqueness, work identity |
 | Photonics | Incoherent passive power splitter | Nonnegative outputs/loss, power conservation, no gain |
@@ -79,12 +87,17 @@ The guarantees apply within those models and hypotheses; empirical applicability
 uncertainty, numerical approximation and industrial certification need additional work.
 
 The API is experimental: **0.4.0**, **AST schema 2**. Component parameters are normalized
-rational literals; symbolic parameter binding, textual parsing, serialization,
-textual parsing, serialization, general continuous-time solvers and target backends are
-not implemented. The `Domains.RealElectronics` model and the `Domains.Electronics.*`
-package use Mathlib real, complex and ordered-field theory; the exact rational
-electronics core stays independent of it. Arbitrary real coefficients are not silently
-converted to rational AST literals.
+rational literals; symbolic parameter binding, textual parsing, serialization, general
+continuous-time solvers and target backends are not implemented. The
+`Domains.RealElectronics` model and the `Domains.Electronics.Analytic` package use Mathlib
+real, complex and ordered-field theory; the exact rational electronics core stays
+independent of it. Arbitrary real coefficients are not silently converted to rational AST
+literals.
+
+Electronics is decomposed one module per theory, with an umbrella per directory that
+re-exports its parts and maps them, so a consumer that needs only Kirchhoff's laws does
+not compile the diode model. See
+[ADR 0006](docs/adr/0006-electronics-module-decomposition.md).
 
 ## Development
 

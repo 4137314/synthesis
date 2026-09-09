@@ -15,9 +15,12 @@ No project-specific global logical assumptions are introduced.
 
 The electronics domain has two layers. `Synthesis.Domains.Electronics` is exact,
 rational and independent of Mathlib: it holds every element whose coefficients are
-stored as AST parameters. `Synthesis.Domains.Electronics.*` is the analytic layer and
-uses Mathlib for ordered fields, real calculus and complex numbers. See
-[ADR 0005](adr/0005-electronics-domain-package.md) for the boundary between them.
+stored as AST parameters, and it is itself decomposed into `Electronics.Exact.{Units,
+Resistor, Capacitor, Inductor, Source}`. `Synthesis.Domains.Electronics.Analytic` is the
+umbrella of the analytic layer and uses Mathlib for ordered fields, real calculus and
+complex numbers. See [ADR 0005](adr/0005-electronics-domain-package.md) for the boundary
+between the layers and [ADR 0006](adr/0006-electronics-module-decomposition.md) for the
+decomposition of each layer into one module per theory.
 
 All elements are ideal and isothermal. Unless a module says otherwise the description
 is a fixed operating point: there is no temperature coefficient, ageing, tolerance,
@@ -48,8 +51,21 @@ Proved: `joule_law`, `passive`, `voltage_additive`, `voltage_homogeneous`, `volt
 `inductive_energy_even`, `inductive_energy_flux`, `series_flux`, `series_inductive_energy`,
 `elastance_capacitance`, `series_capacitor_voltage` and `operating_point_exists`, plus
 the dimensional identities `ohm_dimensions`, `power_dimensions`, `conductance_dimensions`,
-`capacitance_dimensions`, `inductance_dimensions`, `energy_dimensions` and
-`resistance_conductance_dual`.
+`capacitance_dimensions`, `inductance_dimensions`, `energy_dimensions`,
+`resistance_conductance_dual`, `charge_dimensions`, `work_dimensions`, `flux_dimensions`,
+`rc_time_dimensions` and `lr_time_dimensions`.
+
+Also proved: `power_mono` (dissipation is monotone in the resistance at a fixed
+operating current), `parallel_lower_bound`, `dual_power`, `charge_injective` and
+`flux_injective` (stored charge determines terminal voltage and flux linkage determines
+branch current, which is what excluding the degenerate coefficient buys),
+`inductive_energy_zero_iff`, `parallel_capacitance_comm`, `parallel_capacitance_assoc`,
+`series_capacitor_energy`, `series_inductance_comm`, `series_inductance_assoc`,
+`inverse_inductance_product`, `parallel_inductor_current` (the division-free parallel
+inductance law), `VoltageSource.delivered_odd`, `CurrentSource.delivered_odd`,
+`VoltageSource.dead_delivers_nothing`, `CurrentSource.dead_delivers_nothing`,
+`source_loaded_delivers` and `source_node_operating_point` (the dual solved circuit: an
+ideal current source across a strictly positive conductance).
 
 `source_loop_operating_point` is an existence *and* uniqueness statement for the loop
 current of a source driving one strictly positive resistance. Divider identities are
@@ -66,6 +82,26 @@ certificates; `source_delivers` is conditional on a stated current direction, be
 ideal source is active and has no passivity theorem. Tests cover negative current,
 positive dissipation, rejection of negative resistance and conductance, rejection of
 degenerate capacitance and inductance, dimension mismatch and altered coefficients.
+
+### Thévenin equivalence of a one-port
+
+`Electronics.Thevenin` models an affine one-port `v = e + r i` in the passive convention.
+The family contains the ideal voltage source (`r = 0`), the ideal resistor (`e = 0`) and
+every Thévenin or Norton source; see
+[Thévenin's theorem](https://en.wikipedia.org/wiki/Th%C3%A9venin%27s_theorem).
+
+Proved: `affine_feasible`, `affine_resistor`, `affine_voltageSource`, `affine_thevenin`,
+`affine_norton`, `affine_series`, `affine_parallel`, `affine_open_circuit`,
+`affine_unit_current`, `affine_unique`, `affine_identified`, `affine_passive_iff` and
+`affine_not_passive`. `affine_series` and `affine_parallel` prove that the family is
+closed under both interconnections, with the Millman form for the parallel equivalent, so
+any one-port assembled from independent sources and resistances by series and parallel
+composition presents an affine driving point. `affine_unique` proves that two affine
+one-ports no terminal measurement distinguishes have the same parameters, which is what
+licenses identifying a source from its open-circuit voltage and its terminal slope, and
+`affine_passive_iff` proves that an affine one-port is passive exactly when it is a plain
+resistor with nonnegative resistance. A bridge is not reachable by series and parallel
+composition, so the general network form of Thévenin's theorem is not established here.
 
 ### Two-terminal elements and interconnection
 
@@ -164,6 +200,15 @@ the substance of the module: instantaneous absorbed power is exactly the derivat
 the stored energy, and its integral over an interval is the energy difference between
 the endpoints. Dielectric loss, leakage, saturation and hysteresis are not modelled.
 
+### Scalar linear differential equations
+
+`Electronics.Ode` isolates the mathematics that every linear time-invariant circuit
+reduces to: `x' = a x`. Proved: `hasDerivAt_exponential`, `exponential_linear`,
+`linear_unique`, `linear_determined`, `linear_zero`, `linear_sign`, `linear_add` and
+`linear_smul`. Nothing in the module is electrical; it carries no operating envelope and
+no idealization of its own. `Transient` instantiates it at the coefficient `-1 / τ` and
+`SecondOrder` uses it once for each factor of the characteristic polynomial.
+
 ### First-order transients
 
 `Electronics.Transient` gives the closed-form relaxation `x(t) = x₀ e^{-t/τ}` and the
@@ -177,6 +222,47 @@ Proved: `natural_zero`, `step_zero`, `step_natural`, `natural_time_constant`,
 `τ x' + x = 0` equals the closed form of its own initial value, so the solution is the
 model's only behaviour rather than a guess. `rcConstitutive` connects the closed form to
 the capacitor law of `Electronics.Storage` instead of assuming the circuit equation.
+
+### Second-order transients
+
+`Electronics.SecondOrder` models `x'' + a x' + b x = 0` with nonnegative dissipation and
+strictly positive stiffness, parameterized by the two ODE coefficients so that the circuit
+constructors stay division free. The engineering vocabulary is derived:
+`naturalFrequency`, `dampingRatio`, `decayRate`, `dampedFrequency`; see
+[RLC circuits](https://en.wikipedia.org/wiki/RLC_circuit).
+
+Proved: `naturalFrequency_positive`, `naturalFrequency_sq`, `dampingRatio_nonneg`,
+`dissipation_eq`, `dampingRatio_sq`, `discriminant_eq`, `characteristic_completed`,
+`solves_add`, `solves_smul`, `mode_zero`, `hasDerivAt_mode`, `mode_solves`,
+`sqrt_discriminant_sq`, `characteristic_slowRoot`, `characteristic_fastRoot`, `root_sum`,
+`root_product`, `slowRoot_negative`, `fastRoot_negative`, `roots_distinct`,
+`overdamped_decomposition`, `characteristic_doubleRoot`, `criticalMode_zero`,
+`hasDerivAt_criticalMode`, `critical_solves`, `no_real_root`, `dampedFrequency_positive`,
+`dampedFrequency_sq`, `oscillatoryMode_zero`, `hasDerivAt_oscillatoryMode`,
+`oscillatory_solves` and `oscillatory_envelope`.
+
+The three regimes are separated exactly by the sign of the discriminant.
+`overdamped_decomposition` is the substantive result: *every* solution of an overdamped
+relaxation is a combination of its two exponential modes, so the mode family describes all
+behaviours rather than merely supplying some. `slowRoot_negative` and `fastRoot_negative`
+prove that both real modes decay, which is the stability statement. `no_real_root` proves
+that below critical damping no exponential mode exists at all, so the response necessarily
+oscillates, and `oscillatory_envelope` bounds the ringing by its exponential envelope. The
+underdamped regime has no completeness theorem: `oscillatory_solves` verifies the decaying
+sinusoid family but does not prove it exhausts the solutions.
+
+### Second-order circuits
+
+`Electronics.Rlc` derives the governing equations of the series loop and the parallel node
+from the element laws of `Electronics.Storage` together with one Kirchhoff constraint,
+by differentiating the Kirchhoff identity and eliminating the remaining state variable.
+
+Proved: `series_loop_solves`, `parallel_node_solves`, `series_discriminant`,
+`series_overdamped_iff`, `parallel_discriminant` and `parallel_overdamped_iff`. The
+discriminant identities are stated with denominators cleared, so the design inequalities
+`R² C > 4 L` for the series loop and `L > 4 R² C` for the parallel node hold without a
+nondegeneracy hypothesis. Both circuits are source free; a driven circuit adds a forcing
+term that is not modelled, and neither is parasitic resistance of the reactive elements.
 
 ### Sinusoidal steady state
 
@@ -194,6 +280,42 @@ Proved: `resistor_re`, `resistor_im`, `inductor_re`, `inductor_im`, `capacitor_r
 `resonance_minimizes_norm`, `quality_positive` and `quality_antitone`. The phasor model
 presupposes a single angular frequency, linearity and decayed transients; it must not be
 applied to a nonlinear element, and `phasor_time_domain` fixes its time-domain reading.
+
+### Power in sinusoidal steady state
+
+`Electronics.Power` keeps the time-domain and phasor descriptions separate.
+`instantaneous_decomposition` proves that the product of a voltage and a current sinusoid
+of the same frequency is exactly a constant plus a term at twice the frequency; complex
+power `S = V conj(I) / 2` carries the dissipated power in its real part and the exchanged
+power in its imaginary part. See
+[AC power](https://en.wikipedia.org/wiki/AC_power).
+
+Proved: `instantaneous_decomposition`, `resistive_instantaneous_nonneg`,
+`complexPower_ohm`, `realPower_ohm`, `reactivePower_ohm`, `apparent_sq`,
+`realPower_le_apparent`, `realPower_nonneg_of_passive`, `realPower_reactance`,
+`reactance_of_realPower`, `abs_powerFactor_le_one`, `powerFactor_eq_one_iff`,
+`realPower_powerFactor` and `realPower_eq_averagePower`. `apparent_sq` is the power
+triangle `|S|² = P² + Q²` proved as an identity, and `reactance_of_realPower` is its
+converse direction: an element dissipating nothing at a nonzero current has no resistive
+part. The averaging step itself is **not** proved: the module decomposes the instantaneous
+product exactly but takes no integral over a period, so the identification of the constant
+term with the average is stated, not derived. `powerFactor` is the displacement factor
+only; harmonics and distortion are outside the phasor model.
+
+### First-order frequency response
+
+`Electronics.Filter` gives the two single-pole transfer functions with squared magnitudes
+stated through `Complex.normSq`, which keeps every proof rational: the half-power point is
+the exact statement `normSq = 1/2` and no logarithm or decibel approximation appears.
+
+Proved: `rcCutoff_positive`, `pole_nonzero`, `pole_normSq`, `lowPass_normSq`,
+`highPass_normSq`, `complementary`, `lowPass_zero`, `highPass_zero`, `lowPass_cutoff`,
+`highPass_cutoff`, `lowPass_le_one`, `highPass_le_one`, `lowPass_antitone`,
+`highPass_monotone` and `lowPass_lt_one`. `complementary` proves that the two responses
+sum to unit power at every frequency, and `lowPass_antitone` proves monotone roll-off, so
+the stop band is genuinely a stop band. Component tolerance, loading by the following
+stage and noise are not modelled; a filter realized from these transfer functions is a
+specification, not a circuit.
 
 ### Nonlinear devices
 
@@ -258,6 +380,28 @@ Proved: `Impedance.absorbed_quadratic`, `open_circuit_primary`, `open_circuit_tr
 positive input impedance by definiteness of its port quadratic form; `tee_realizes`
 shows that reciprocity is exactly the condition for the three-element T realization; and
 `cascade_reciprocal` shows that the transmission determinant identity survives cascading.
+
+`Electronics.TwoPort.Admittance` is the dual description `i = Y v`, kept separate because
+its natural algebra differs: admittance parameters add under *parallel-parallel*
+interconnection and the three-element realization of a reciprocal port is the Π network.
+Proved: `absorbed_quadratic`, `short_circuit_primary`, `short_circuit_transfer`,
+`parallel_current`, `parallel_absorbed`, `parallel_reciprocal`, `parallel_comm`,
+`parallel_assoc`, `pi_reciprocal`, `pi_realizes`, `output_admittance_loaded`,
+`passive_of_definite`, `definite_of_passive`, `passivity_iff`, `input_nonneg_of_passive`
+and `parallel_passive`.
+
+`Electronics.TwoPort.Conversion` supplies the changes of coordinates, each with its
+nondegeneracy hypothesis: a two-port has an admittance description only when its impedance
+determinant is nonzero and a transmission description only when its transfer impedance is
+nonzero. Proved: `toAdmittance_primary`, `toAdmittance_secondary`,
+`toAdmittance_determinant`, `toAdmittance_determinant_inv`, `toImpedance_toAdmittance`,
+`toAdmittance_reciprocal`, `transmission_determinant`, `toTransmission_reciprocal_iff`,
+`toTransmission_reciprocal` and `tee_transmission_cascade`. Each conversion is proved
+correct at the terminals, that is by reproducing the port variables, rather than by
+asserting that the matrices invert; `toTransmission_reciprocal_iff` shows that the
+transmission identity `AD - BC = 1` is exactly impedance reciprocity `z₁₂ = z₂₁`, and
+`tee_transmission_cascade` checks the T realization against the ladder of transmission
+elements instead of trusting that the two catalogs agree.
 
 ### Logic gates and static logic levels
 
