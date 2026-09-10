@@ -1,5 +1,5 @@
 name = "synthesis"
-version = "0.6.0"
+version = "0.6.1"
 defaultTargets = ["Synthesis", "SynthesisDomains", "SynthesisBridges", "SynthesisTests", "synthesis_tests"]
 testDriver = "synthesis_tests"
 
@@ -15,7 +15,7 @@ root = "Tests.Main"
 
 [[lean_lib]]
 name = "SynthesisTests"
-roots = ["Tests.ExternalPackage", "Tests.PublicAPI", "Tests.Targets", "Tests.Architecture", "Tests.Formal", "Tests.Engineering", "Tests.RealElectronics", "Tests.Electronics"]
+roots = ["Tests.ExtensionComposition", "Tests.ExternalPhysical", "Tests.RevisionIntegrity", "Tests.ExternalBackend", "Tests.WireConformance", "Tests.Scale", "Tests.ExternalPackage", "Tests.PublicAPI", "Tests.Targets", "Tests.Architecture", "Tests.Formal", "Tests.Engineering", "Tests.RealElectronics", "Tests.Electronics"]
 
 [[lean_lib]]
 name = "SynthesisDomains"

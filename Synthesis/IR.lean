@@ -13,3 +13,4 @@ import Synthesis.IR.Composition
 import Synthesis.IR.Serialization
 import Synthesis.IR.Index
 import Synthesis.IR.Render
+import Synthesis.IR.Revision

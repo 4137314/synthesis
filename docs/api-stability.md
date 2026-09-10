@@ -32,3 +32,12 @@ IR schema, library API, serialization format and interop protocol versions are
 independent. Changing a codec cannot reinterpret an old wire version. Unknown data
 within an existing extension payload is retained as Data; unknown envelope/record
 fields are rejected. Upgrades use explicit migrations with information disclosures.
+
+
+Compatibility dimensions are independent: source signatures, mathematical semantics,
+canonical schema fields, wire bytes, diagnostic codes, trace revision boundaries and
+migration preconditions. A change in one requires naming that dimension, its reason,
+replacement API and version decision. Stable semantics take precedence over unchanged
+function signatures. Protocol 2 in API 0.6.1 is an explicit breaking trace-safety repair;
+there is no implicit conversion of protocol-1 local-only traces into trusted revisioned
+traces. See ADR 0009 and the pre-1.0 technical criteria.

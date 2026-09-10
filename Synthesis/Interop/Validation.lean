@@ -28,13 +28,24 @@ def TranslationValidator.certify {A : Type u} {B : Type v} {relation : A → B �
 
 /-- Reports are inspectable claims, never proofs. The open method contract can identify
 an external tool, experiment, test, assumption or unresolved obligation. -/
+inductive EvidenceStatus where
+  | passed | failed | inconclusive | notRun | assumed
+  deriving Repr, DecidableEq, BEq
+
 structure EvidenceReport where
   id : ContractId
   method : ContractId
-  subjects : List IR.EntityRef
+  subjects : List IR.LocatedEntity
+  status : EvidenceStatus
+  claim : ContractId
+  tool : Option ContractId := none
+  inputs : List RevisionRef := []
+  outputs : List RevisionRef := []
+  certificate : Option RevisionRef := none
   statement : String
   dependencies : List ContractId := []
   provenance : IR.Provenance := {}
+  deriving Repr, DecidableEq
 
 /-- Formal evidence requires an actual proof of the proposition chosen by the caller. -/
 structure ProofEvidence (claim : Prop) where
@@ -114,5 +125,53 @@ def Disclosure.render (disclosure : Disclosure) : String :=
     "trace links: " ++ toString disclosure.trace.length] ++
     String.join ((disclosure.diagnostics ++ disclosure.obligations).map
       (fun diagnostic => "\n" ++ diagnostic.render))
+
+/-- Terminal presentation retains revision boundaries; it makes no preservation claim. -/
+def Trace.render (trace : Trace) : String :=
+  s!"{IR.renderRevision trace.sourceRevision} -> {IR.renderRevision trace.targetRevision}" ++
+    "\n  source: " ++ String.intercalate ", " (trace.source.map IR.EntityRef.render) ++
+    "\n  target: " ++ String.intercalate ", " (trace.target.map IR.EntityRef.render)
+
+def EvidenceStatus.render : EvidenceStatus → String
+  | .passed => "passed" | .failed => "failed" | .inconclusive => "inconclusive"
+  | .notRun => "not-run" | .assumed => "assumed"
+
+/-- Reports always print their method alongside status: passed is not a proof tier. -/
+def EvidenceReport.render (report : EvidenceReport) : String :=
+  s!"{IR.renderContract report.id}: {report.status.render} ({IR.renderContract report.method})" ++
+    s!"\n  claim: {IR.renderContract report.claim}\n  {report.statement}" ++
+    String.join (report.subjects.map (fun subject => "\n  subject: " ++ subject.render)) ++
+    (report.tool.map (fun tool => "\n  tool: " ++ IR.renderContract tool) |>.getD "")
+
+/-- Contravariant requirements let pipelines reuse a prerequisite on a projected
+source view without changing its meaning. -/
+def Requirement.contramap {A : Type u} {B : Type v} (requirement : Requirement A)
+    (view : B → A) (id : ContractId) : Requirement B :=
+  ⟨id, fun source => requirement.holds (view source)⟩
+
+def Checker.contramap {A : Type u} {B : Type v} {requirement : Requirement A}
+    (checker : Checker requirement) (view : B → A) (id : ContractId) :
+    Checker (requirement.contramap view id) := ⟨fun source => checker.check (view source)⟩
+
+/-- Encoding correctness is independent from semantic lowering. This optional
+interface requires an exact syntactic round-trip proof, not an assurance label. -/
+structure RoundTripEncoder (Value Wire : Type) where
+  codec : IR.Codec Value Wire
+  exact : codec.Exact
+
+theorem RoundTripEncoder.injective {Value Wire : Type} (encoder : RoundTripEncoder Value Wire)
+    {a b : Value} (h : encoder.codec.encode a = encoder.codec.encode b) : a = b := by
+  have decoded := congrArg encoder.codec.decode h
+  rw [encoder.exact a, encoder.exact b] at decoded
+  exact Except.ok.inj decoded
+
+/-- A validated translation's provenance is separate from the proof. Revision
+functions are explicit package contracts, never inferred from local entity paths. -/
+structure TracedTranslation {A : Type u} {B : Type v} (relation : A → B → Prop)
+    (source : A) (sourceRevision : RevisionRef) (targetRevision : B → RevisionRef)
+    extends CertifiedTranslation relation source where
+  trace : List Trace
+  revisionSafe : ∀ link ∈ trace,
+    link.sourceRevision = sourceRevision ∧ link.targetRevision = targetRevision target
 
 end Synthesis.Interop

@@ -1,0 +1,101 @@
+[
+  {
+    "file": "minimal.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "61472e96bbb43c79",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "hierarchy.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "8d0b731059e93dff",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "symbolic.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "ad5dc642425b2a44",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "acausal.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "dd2e65b6b6d62ebe",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "operations.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "b93375099196c416",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "requirements.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "0bce15e8c723e77e",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "geometry-like-extension.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "f65e4ed920f36226",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "unicode-and-integers.json",
+    "accept": true,
+    "schema": 3,
+    "format": 1,
+    "digest": "d383d9846576eae2",
+    "scheme": "fnv1a64-be@1"
+  },
+  {
+    "file": "invalid/unsupported-format.json",
+    "accept": false,
+    "code": "SYN-IR-UNSUPPORTED-VERSION"
+  },
+  {
+    "file": "invalid/unsupported-schema.json",
+    "accept": false,
+    "code": "SYN-IR-UNSUPPORTED-VERSION"
+  },
+  {
+    "file": "invalid/malformed.json",
+    "accept": false,
+    "code": "SYN-IR-DECODE"
+  },
+  {
+    "file": "invalid/duplicate-key.json",
+    "accept": false,
+    "code": "SYN-IR-DUPLICATE-FIELD"
+  },
+  {
+    "file": "invalid/zero-denominator.json",
+    "accept": false,
+    "code": "SYN-IR-DECODE"
+  },
+  {
+    "file": "invalid/unreduced-rational.json",
+    "accept": false,
+    "code": "SYN-IR-DECODE"
+  },
+  {
+    "file": "invalid/escaped-duplicate.json",
+    "accept": false,
+    "code": "SYN-IR-DUPLICATE-FIELD"
+  }
+]

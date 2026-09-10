@@ -93,7 +93,7 @@ unproved assumptions. Physical laws are explicit model definitions or hypotheses
 The guarantees apply within those models and hypotheses; empirical applicability,
 uncertainty, numerical approximation and industrial certification need additional work.
 
-The API is experimental: **0.6.0**, **IR schema 3**. This is a deliberate replacement of
+The API is experimental: **0.6.1**, **IR schema 3**. This is a deliberate replacement of
 the old flat graph API. The compiler-facing IR is open data; rich Lean models retain
 relations and proofs through explicit denotation links. Independent extensions define
 types, interfaces, operation semantics, geometry or lower-level dialects without central
@@ -107,11 +107,12 @@ commands show the resulting structure. See the [architecture](docs/architecture.
 [domain author guide](docs/domain-development.md), [backend author guide](docs/backend-development.md)
 and [migration decision](docs/adr/0007-open-engineering-ir.md).
 
-The reference JSON codec has format version 1. Fine-grained entity queries, explicit
+The explicitly specified JSON codec retains format version 1; revision-aware interop uses protocol 2. Fine-grained entity queries, explicit
 extension composition and translation-validation APIs are public foundations; see the
 [API policy](docs/api-stability.md), [public API map](docs/public-api.md) and
-[serialization contract](docs/serialization.md). The [hardening report](docs/api-hardening-report.md)
-records the implementation, compatibility changes, checks and remaining limits.
+[serialization contract](docs/serialization.md). The [stabilization report](docs/stability-report.md)
+records implemented guarantees, migration instructions and remaining risks. See the [wire specification](docs/wire-format-v1.md),
+[revision decision](docs/adr/0009-revision-and-wire-integrity.md), and [pre-1.0 criteria](docs/pre-1.0.md).
 
 No target backend, solver, automatic causalizer or verified hierarchy
 flattening pass is implemented. Domain-specific syntax, comprehensive source-position capture,

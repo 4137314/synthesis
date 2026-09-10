@@ -26,3 +26,15 @@ arbitrary domain-specific names, or recover from every elaboration error. Domain
 reuse these helpers and Lean's expected-type elaboration; their syntax and diagnostics
 remain domain-owned. The public query layer contains introspection logic, so terminal,
 IDE and AI tooling need not parse command output or inspect private containers.
+
+
+API 0.6.1 adds ElaborationContext with explicit module/definition/instance scope,
+innermost-first name bindings, parameter typing context, expected type, active
+ExtensionSet and source/generation metadata. resolveName distinguishes unresolved and
+ambiguous names; infer reports expected/actual type mismatch. Definition construction
+checks member identities before committing a definition to builder state.
+
+RevisionSourceMap wraps a local SourceMap with immutable revision context.
+sourceOfEntity rejects stale revision references; entityAtPosition returns LocatedEntity.
+GeneratedOrigin records located parents and the generating frontend construct. Domain
+elaborators supply these explicit relationships; they are not guessed from text names.

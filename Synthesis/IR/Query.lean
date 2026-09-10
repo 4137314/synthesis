@@ -1,4 +1,5 @@
 import Synthesis.IR.Diagnostic
+import Std.Data.HashMap.Basic
 
 namespace Synthesis.IR
 set_option autoImplicit false
@@ -75,7 +76,8 @@ Nested operations use preorder; attributes immediately follow their owner. -/
 def Module.walk (m : Module) : List Cursor :=
   ((⟨{}, .module m⟩ : Cursor) ::
     (m.bindings.map (fun b => childCursor {} (.binding b.name) (.binding b))) ++
-    m.foldDefinitions ([] : List Cursor) (fun acc d => acc ++ walkDefinition { definition := some d.id } d))
+    (m.foldDefinitions ([] : List (List Cursor)) (fun chunks d =>
+      walkDefinition { definition := some d.id } d :: chunks)).reverse.flatten)
     |>.flatMap withAttributes
 
 /-- Filter contracts without knowing operation body storage. -/
@@ -90,18 +92,19 @@ def Module.walkHierarchy (m : Module) (budget : Nat) : Except (List Diagnostic) 
   let root ← match m.rootDefinition with
     | some d => .ok d
     | none => .error [Diagnostic.error "SYN-IR-UNRESOLVED-ENTITY" "Root definition is missing."]
-  visit budget [] root
+  let table := m.definitions.foldr (fun d (table : Std.HashMap QualifiedId Definition) => table.insert d.id d) ∅
+  visit table budget [] root
 where
-  visit : Nat → List Symbol → Definition → Except (List Diagnostic) (List Cursor)
-    | 0, _, _ => .error [Diagnostic.error "SYN-IR-TRAVERSAL-LIMIT" "Hierarchy depth budget exhausted."]
-    | fuel + 1, path, d => do
-      let mut result := (walkDefinition { definition := some m.root, instances := path } d).flatMap withAttributes
+  visit : Std.HashMap QualifiedId Definition → Nat → List Symbol → Definition → Except (List Diagnostic) (List Cursor)
+    | _, 0, _, _ => .error [Diagnostic.error "SYN-IR-TRAVERSAL-LIMIT" "Hierarchy depth budget exhausted."]
+    | table, fuel + 1, path, d => do
+      let mut chunks := [(walkDefinition { definition := some m.root, instances := path } d).flatMap withAttributes]
       for i in d.instances do
-        let child ← match m.findDefinition i.definition with
+        let child ← match table[i.definition]? with
           | some child => .ok child
           | none => .error [Diagnostic.error "SYN-IR-UNRESOLVED-ENTITY" "Instance definition is missing."]
-        result := result ++ (← visit fuel (path ++ [i.name]) child)
-      pure result
+        chunks := (← visit table fuel (path ++ [i.name]) child) :: chunks
+      pure chunks.reverse.flatten
 
 /-- Structural categories describe the fixed substrate, never engineering domains. -/
 inductive EntityKind where

@@ -1,4 +1,7 @@
-# API 0.6 hardening report
+# Historical API 0.6.0 hardening report
+
+This records the b4a0882 baseline. ADR 0009 and the stability report supersede its
+linear-index, derived-codec and local-only-trace descriptions.
 
 ## Changes and compatibility
 

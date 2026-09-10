@@ -20,6 +20,10 @@ def DesignBuilder.addDefinition (definition : IR.Definition) : DesignBuilder Def
     throw [{ (IR.Diagnostic.error "SYN-FRONTEND-DUPLICATE-DEFINITION"
       "A definition with this identity already exists.") with
       subject := some { definition := some definition.id } }]
+  if !definition.identitiesValid then
+    throw [{ (IR.Diagnostic.error "SYN-FRONTEND-INVALID-SCOPE"
+      "Definition has empty, duplicate or shadowed member identities.") with
+      subject := some { definition := some definition.id }, source := definition.provenance.source }]
   set { m with definitions := m.definitions ++ [definition] }
   pure ⟨definition.id⟩
 

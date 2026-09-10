@@ -1,3 +1,9 @@
+import Tests.ExtensionComposition
+import Tests.ExternalPhysical
+import Tests.RevisionIntegrity
+import Tests.ExternalBackend
+import Tests.WireConformance
+import Tests.Scale
 import Tests.ExternalPackage
 import Tests.PublicAPI
 import Synthesis
@@ -10,6 +16,11 @@ import Tests.Targets
 open Synthesis
 
 def main : IO Unit := do
+  Tests.Scale.checkSize 100
+  Tests.Scale.checkSize 1000
+  Tests.WireConformance.check
+  Tests.ExternalBackend.check
+  Tests.RevisionIntegrity.check
   Tests.PublicAPI.check
   match Frontend.compile Examples.electroOptic with
   | .ok result =>

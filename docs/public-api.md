@@ -13,8 +13,8 @@ must remap addresses when renaming declarations or changing argument/attribute o
 Requirements represented by operations use their operation address and private
 semantic contract; no core requirement-kind enum is needed.
 
-The initial derived index is an array snapshot, with a theorem that definition lookup
-agrees with canonical lookup. It is not yet an asymptotically faster lookup structure.
+The derived index uses a hash table, with theorems that definition and entity lookup
+agree with canonical lookup. Public traversal does not use hash-table iteration order.
 Its storage fields are private; an optimized implementation must preserve the theorem
 and public result semantics. Canonical IR remains the source of truth.
 
@@ -32,3 +32,10 @@ Migration stages compose only when their intermediate schema labels agree. The
 source and target Lean types and stage checkers establish actual representation
 requirements; numeric labels alone do not prove conformance. Disclosures describe
 information movement, while Establishes and semantic relation theorems prove facts.
+
+
+API 0.6.1 adds RevisionRef, ModuleRevision.create and LocatedEntity. Trace now requires
+source/target revisions, and checked composition returns diagnostics on mismatch.
+ElaborationContext resolves explicitly scoped human aliases and propagates expected
+types through the active ExtensionSet. Protocol 2 serializes traces and evidence using
+manual schemas. See wire-format-v1.md and interop-protocol-v2.md.

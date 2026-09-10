@@ -16,6 +16,8 @@ structure QualifiedId where
   segments : List String
   deriving Repr, DecidableEq, BEq, ReflBEq, LawfulBEq
 
+instance : Hashable QualifiedId := ⟨fun id => hash id.segments⟩
+
 /-- Version belongs to the semantic contract, independently of the interchange schema. -/
 structure ContractId where
   name : QualifiedId

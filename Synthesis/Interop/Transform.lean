@@ -1,4 +1,5 @@
 import Synthesis.Semantics.Model
+import Synthesis.IR.Revision
 
 namespace Synthesis.Interop
 set_option autoImplicit false
@@ -14,20 +15,37 @@ structure Requirement (Source : Type u) where
 structure Checker (requirement : Requirement A) where
   check : (source : A) → Except (List IR.Diagnostic) (PLift (requirement.holds source))
 
-/-- Traceability is many-to-many; loss and generated obligations are explicit. -/
+/-- A trace edge has explicit source and target revisions even when its entity lists
+are empty. Local names alone never authorize cross-model composition. -/
 structure Trace where
+  sourceRevision : RevisionRef
+  targetRevision : RevisionRef
   source : List IR.EntityRef
   target : List IR.EntityRef
-  deriving Repr
+  deriving Repr, DecidableEq
 
-/-- Compose many-to-many trace links through an explicitly shared intermediate
-revision. Unmatched links remain in the stage lineage, not in this end-to-end view. -/
-def Trace.compose (first second : List Trace) : List Trace :=
-  first.flatMap fun a => second.filterMap fun b =>
-    if a.target.any (fun middle => b.source.contains middle) then
-      some ⟨a.source, b.target⟩ else none
+/-- A batch join requires one matching intermediate revision for every edge pair.
+Unmatched entity paths produce no link; mismatched revisions produce diagnostics. -/
+def Trace.compose (first second : List Trace) : Except (List IR.Diagnostic) (List Trace) :=
+  if first.all (fun a => second.all (fun b => a.targetRevision == b.sourceRevision)) then
+    .ok (first.flatMap fun a => second.filterMap fun b =>
+      if a.target.any (fun middle => b.source.contains middle) then
+        some ⟨a.sourceRevision, b.targetRevision, a.source, b.target⟩ else none)
+  else .error [IR.Diagnostic.error "SYN-INTEROP-REVISION-MISMATCH"
+    "Trace composition requires identical intermediate revisions."]
+
+theorem Trace.compose_rejects (first second : List Trace)
+    (mismatch : first.all (fun a => second.all (fun b => a.targetRevision == b.sourceRevision)) = false) :
+    (Trace.compose first second).isOk = false := by simp [Trace.compose, mismatch]; rfl
+
+def Trace.sources (trace : Trace) : List IR.LocatedEntity :=
+  trace.source.map (fun entity => ⟨trace.sourceRevision, entity⟩)
+
+def Trace.targets (trace : Trace) : List IR.LocatedEntity :=
+  trace.target.map (fun entity => ⟨trace.targetRevision, entity⟩)
 
 structure Disclosure where
+  revisions : Option (RevisionRef × RevisionRef) := none
   consumed : List ContractId := []
   preserved : List ContractId := []
   erased : List ContractId := []
@@ -36,6 +54,7 @@ structure Disclosure where
   diagnostics : List IR.Diagnostic := []
   obligations : List IR.Diagnostic := []
   trace : List Trace := []
+  history : List Trace := []
   deriving Repr
 
 structure Result (Target : Type u) where
@@ -47,6 +66,21 @@ structure Stage (Source : Type u) (Target : Type v) where
   id : ContractId
   run : Source → Except (List IR.Diagnostic) (Result Target)
 
+/-- Untracked stages compose only with untracked stages and cannot carry traces.
+Tracked stages must agree on the intermediate revision, including empty trace batches. -/
+def Disclosure.validTrace (disclosure : Disclosure) : Bool :=
+  match disclosure.revisions with
+  | none => disclosure.trace.isEmpty && disclosure.history.isEmpty
+  | some (source, target) => disclosure.trace.all (fun link =>
+      link.sourceRevision == source && link.targetRevision == target)
+
+def Disclosure.compatible (first second : Disclosure) : Bool :=
+  first.validTrace && second.validTrace &&
+    match first.revisions, second.revisions with
+    | none, none => true
+    | some a, some b => a.2 == b.1
+    | _, _ => false
+
 def Stage.andThen (first : Stage A B) (second : Stage B C) (id : ContractId) : Stage A C where
   id := id
   run source :=
@@ -54,15 +88,26 @@ def Stage.andThen (first : Stage A B) (second : Stage B C) (id : ContractId) : S
     | .error errors => .error errors
     | .ok a => match second.run a.value with
       | .error errors => .error errors
-      | .ok b => .ok ⟨b.value, {
-      consumed := a.disclosure.consumed ++ b.disclosure.consumed
-      preserved := []
-      erased := a.disclosure.erased ++ b.disclosure.erased
-      assumed := a.disclosure.assumed ++ b.disclosure.assumed
-      derived := a.disclosure.derived ++ b.disclosure.derived
-      diagnostics := a.disclosure.diagnostics ++ b.disclosure.diagnostics
-      obligations := a.disclosure.obligations ++ b.disclosure.obligations
-      trace := a.disclosure.trace ++ b.disclosure.trace }⟩
+      | .ok b =>
+        if !a.disclosure.compatible b.disclosure then
+          .error [IR.Diagnostic.error "SYN-INTEROP-REVISION-MISMATCH"
+            "Stage disclosures disagree on the intermediate revision or omit trace revision boundaries."]
+        else match Trace.compose a.disclosure.trace b.disclosure.trace with
+        | .error errors => .error errors
+        | .ok traces => .ok ⟨b.value, {
+          revisions := match a.disclosure.revisions, b.disclosure.revisions with
+            | some x, some y => some (x.1, y.2)
+            | _, _ => none
+          consumed := a.disclosure.consumed ++ b.disclosure.consumed
+          preserved := []
+          erased := a.disclosure.erased ++ b.disclosure.erased
+          assumed := a.disclosure.assumed ++ b.disclosure.assumed
+          derived := a.disclosure.derived ++ b.disclosure.derived
+          diagnostics := a.disclosure.diagnostics ++ b.disclosure.diagnostics
+          obligations := a.disclosure.obligations ++ b.disclosure.obligations
+          trace := traces
+          history := a.disclosure.history ++ a.disclosure.trace ++
+            b.disclosure.history ++ b.disclosure.trace }⟩
 
 /-- A successful stage has a proved postcondition; no guarantee is inferred from its name. -/
 def Establishes (stage : Stage A B) (relation : A → B → Prop) : Prop :=
@@ -79,9 +124,13 @@ theorem Stage.andThen_establishes (first : Stage A B) (second : Stage B C) (id :
     cases hb : second.run middle.value with
     | error errors => simp [Stage.andThen, ha, hb] at h
     | ok output =>
-      simp only [Stage.andThen, ha, hb, Except.ok.injEq] at h
-      subst result
-      exact ⟨middle.value, hp a middle ha, hq middle.value output hb⟩
+      simp only [Stage.andThen, ha, hb] at h
+      split at h
+      · contradiction
+      · split at h
+        · contradiction
+        · cases h
+          exact ⟨middle.value, hp a middle ha, hq middle.value output hb⟩
 
 /-- Proof obligations are rich Lean propositions. A diagnostic is only their public
 explanation; it does not discharge the obligation. -/

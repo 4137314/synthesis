@@ -111,8 +111,7 @@ Use Module.foldDefinitions, Module.walk, Module.operationsWith, Module.findEntit
 Module.resolve for inspection. walkHierarchy expands instance occurrences with a
 caller-selected depth budget and reports exhaustion. Use EntityRef in traces; a
 qualified definition ID alone cannot identify a particular port or nested result.
-Index.findDefinition has a kernel theorem agreeing with canonical lookup, while its
-current implementation remains linear. Do not depend on index storage.
+Index.findDefinition has a kernel theorem agreeing with canonical lookup, and uses hash lookup. Do not depend on index storage.
 
 Stage.requiring and Checker.and reuse proof-producing prerequisites before any stage.
 Checker.and reports failures from both prerequisites in left-to-right order.
@@ -120,10 +119,9 @@ TranslationValidator.certify can certify a target from an untrusted generator ag
 an explicit relation. This is independent of how the target was produced. An external
 success status belongs in EvidenceReport and cannot substitute for its proof.
 
-Trace.compose computes an end-to-end many-to-many view through a shared intermediate
-revision; Stage.andThen retains the full edge lineage. Do not join traces from unrelated
-module revisions merely because local references coincide. Preserve separate revision
-context in the package's artifact/provenance envelope.
+Trace.compose returns an end-to-end view or revision-mismatch diagnostics. Stage.andThen
+checks disclosure boundaries and trace endpoints, stores end-to-end links in trace and
+original edges in history. LocatedEntity qualifies external evidence subjects by revision.
 
 Migration.andThen rejects mismatched intermediate schemas. Its stage carries disclosure
 and can use Establishes for actual semantic guarantees. Merely declaring matching

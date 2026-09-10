@@ -233,10 +233,9 @@ or a complete natural-language-like engineering elaborator.
 
 ## Versioning, tests and remaining implementation work
 
-API 0.6.0 follows the supported/experimental boundary in api-stability.md. IR schema 3 is a deliberate breaking replacement; Module
+API 0.6.1 follows the supported/experimental boundary in api-stability.md. IR schema 3 is a deliberate breaking replacement; Module
 carries its schema and validation rejects other versions. Contract versions are separate
-from package and core schema versions. No migration framework or compatibility graph
-stack is retained. See [ADR 0007](adr/0007-open-engineering-ir.md) for the audit/decision.
+from package and core schema versions. Explicit typed migrations are available; no legacy compatibility graph stack is retained. See [ADR 0007](adr/0007-open-engineering-ir.md) for the audit/decision.
 
 Architecture tests exercise third-party contracts, shared definitions, hierarchy,
 multiway conservative/signal/resource policies, symbolic typing, specialization
@@ -248,7 +247,7 @@ Chemistry have independent imports. Tests.Targets exercises concrete clock/reset
 differential, layout/placement, requirement-lineage and FEM-boundary payloads.
 
 Future work includes richer domain-specific surface syntax, complete source-position
-capture, additional codecs, scalable indexed lookup, automatic parameter evaluation,
+capture, additional codecs, further validation/index optimization, automatic parameter evaluation,
 hierarchy flattening and domain-specific refinement proofs. These fit the public
 extension/stage contracts; no corresponding implementation or preservation theorem is
 claimed today. Solvers, target emitters, physical implementation and manufacturing
@@ -257,8 +256,8 @@ realizability belong outside this task.
 
 ## Supported API boundary
 
-API 0.6.0 retains IR schema 3. The serialization format is independently versioned at 1,
-and the generic interop protocol is 1. See [API stability](api-stability.md) and
+API 0.6.1 retains IR schema 3. The serialization format is independently versioned at 1,
+and the generic interop protocol is 2. See [API stability](api-stability.md) and
 [public API map](public-api.md) for supported versus experimental contracts.
 
 EntityRef addresses module-relative definitions, hierarchical occurrences and named
@@ -281,3 +280,21 @@ CertifiedTranslation requires a proof of a specified source/target relation.
 EvidenceReport remains a report. CertifiedRealization separately requires technology
 admissibility, feasibility and specification satisfaction. Migration composes explicit
 schema transitions; disclosures are not preservation theorems.
+
+
+## Revision and wire integrity
+
+RevisionRef and LocatedEntity distinguish cross-model identity from local EntityRef.
+ModuleRevision caches a fingerprint of explicit format-1 bytes. Trace and stage
+composition reject intermediate revision mismatch; original edges remain in history.
+See [protocol 2](interop-protocol-v2.md). Fingerprints do not prove semantic equality.
+
+The wire codec is manual, with a [normative specification](wire-format-v1.md) and
+portable conformance fixtures. Definition and entity resolution use a derived hash
+index with kernel correspondence proofs. Hierarchy traversal shares a definition table;
+iteration order remains canonical declaration order. See [scale checks](benchmarks.md).
+
+Frontend.ElaborationContext explicitly carries scopes, bindings, expected type, active
+extensions, source and generated provenance identity. ExtensionSet exposes ownership
+without a registry. Evidence outcomes and revision-qualified subjects distinguish a
+tool report from a proposition proved by a translation validator or verified encoder.

@@ -43,8 +43,13 @@ private def aRef : EntityRef := { definition := some ⟨["a"]⟩, steps := [.por
 private def bRef : EntityRef := { definition := some ⟨["b"]⟩, steps := [.operation "o"] }
 private def cRef : EntityRef := { definition := some ⟨["c"]⟩, steps := [.result "r"] }
 
-example : (Interop.Trace.compose [⟨[aRef], [bRef]⟩] [⟨[bRef], [cRef]⟩]).length = 1 := by decide +kernel
-example : (Interop.Trace.compose [⟨[aRef], [bRef]⟩] [⟨[aRef], [cRef]⟩]).isEmpty = true := by decide +kernel
+private def revision (name : String) : RevisionRef := ⟨⟨["test", name]⟩, "1", none⟩
+example : (Interop.Trace.compose
+    [⟨revision "A", revision "B1", [aRef], [bRef]⟩]
+    [⟨revision "B1", revision "C", [bRef], [cRef]⟩]).isOk = true := by decide +kernel
+example : (Interop.Trace.compose
+    [⟨revision "A", revision "B1", [aRef], [bRef]⟩]
+    [⟨revision "B2", revision "C", [bRef], [cRef]⟩]).isOk = false := by decide +kernel
 example : renderId ⟨["a/b", "c"]⟩ = "3:a/b/1:c" := by decide +kernel
 example : (Frontend.SourceDocument.range ⟨"x", "a\nb"⟩ ⟨"x", 2, 3⟩) =
     some (⟨1, 0⟩, ⟨1, 1⟩) := by decide +kernel

@@ -94,6 +94,7 @@ example : (systemModel.operationsWith (id_ "systems" "requirement")).length = 1 
 
 /-- Layout and logical entities can be linked without encoding a target ontology in IR. -/
 def layoutTrace : Synthesis.Interop.Trace := ⟨
+  ⟨systemAssembly.id, "1", none⟩, ⟨assembly.id, "1", none⟩,
   [{ definition := some controller.id, steps := [.operation "register"] }],
   [{ definition := some layout.id, steps := [.operation "outline"] }]⟩
 example : layoutTrace.source.all (fun r => (systemModel.findEntity r).isSome) = true := by decide +kernel

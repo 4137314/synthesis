@@ -62,7 +62,7 @@ def inspectionExporter : Exporter IR.Module String where
   emit m _ := .ok ⟨m.renderSummary, {
     consumed := [pressureId]
     erased := [relationId]
-    trace := [⟨[{ definition := some plant.id }], [{}]⟩] }⟩
+    trace := [⟨⟨plant.id, "source-1", none⟩, ⟨plant.id, "artifact-1", none⟩, [{ definition := some plant.id }], [{}]⟩] }⟩
 
 example : (inspectionExporter.run model).isOk = false := by decide +kernel
 
@@ -95,8 +95,8 @@ example : (DesignBuilder.finish chamber.id (do
     let _ ← DesignBuilder.addDefinition chamber
     pure ())).isOk = false := by decide +kernel
 
-example : (match model.index with
-    | .ok index => (index.findDefinition chamber.id).isSome
-    | .error _ => false) = true := by decide +kernel
+example : model.buildIndex.findDefinition chamber.id = some chamber := by
+  rw [Index.findDefinition_eq]
+  decide +kernel
 
 end Tests.ExternalPackage.Acme.Hydraulics

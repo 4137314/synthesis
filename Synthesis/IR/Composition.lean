@@ -1,4 +1,5 @@
 import Synthesis.IR.Extension
+import Synthesis.IR.Entity
 
 namespace Synthesis.IR
 set_option autoImplicit false
@@ -50,5 +51,28 @@ def Extension.combineMany (packages : List ExtensionPackage) :
 
 def Extension.combine (a b : ExtensionPackage) : Except (List Diagnostic) Extension :=
   Extension.combineMany [a, b]
+
+/-- Explicit composed environment with retained ownership metadata for tooling. -/
+structure ExtensionSet where
+  packages : List ExtensionPackage
+  extension : Extension
+  composed : Extension.combineMany packages = .ok extension
+
+def ExtensionSet.create (packages : List ExtensionPackage) : Except (List Diagnostic) ExtensionSet :=
+  match h : Extension.combineMany packages with
+  | .error errors => .error errors
+  | .ok extension => .ok ⟨packages, extension, h⟩
+
+def ExtensionSet.owner (extensions : ExtensionSet) (contract : ContractId) : Option ContractId :=
+  (extensions.packages.find? (fun p => p.contracts.contains contract)).map (·.id)
+
+def ExtensionSet.contracts (extensions : ExtensionSet) : List ContractId :=
+  extensions.packages.flatMap (·.contracts)
+
+/-- Reports the owner only when its operation-shape callback accepts. This is not
+whole-definition typing or semantic interpretation. -/
+def ExtensionSet.acceptedOperation (extensions : ExtensionSet) (operation : Operation) :
+    Option ContractId :=
+  if extensions.extension.operation operation then extensions.owner operation.contract else none
 
 end Synthesis.IR
